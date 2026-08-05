@@ -20,3 +20,8 @@ uploads/quarantine/*
 .idea/
 .DS_Store
 *.log
+
+# Binários compilados da CLI (cli/filepad-clean*)
+cli/dist/
+cli/filepad-clean
+cli/filepad-clean.exe
