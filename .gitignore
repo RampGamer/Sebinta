@@ -25,3 +25,13 @@ uploads/quarantine/*
 cli/dist/
 cli/filepad-clean
 cli/filepad-clean.exe
+
+# Binários compilados do servidor standalone
+standalone/dist/
+standalone/filepad-server
+standalone/filepad-server.exe
+standalone/standalone
+
+# App desktop: dependências e builds do Electron
+desktop/node_modules/
+desktop/dist/

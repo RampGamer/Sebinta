@@ -8,6 +8,7 @@ Além de texto com gravação automática, cada pad suporta upload de imagens, v
 
 - [Funcionalidades](#funcionalidades)
 - [Limpeza de metadados (app desktop / CLI)](#limpeza-de-metadados-app-desktop--cli)
+- [Correr sem Docker (servidor standalone em Go)](#correr-sem-docker-servidor-standalone-em-go)
 - [Pré-requisitos](#pré-requisitos)
 - [1. Criar o túnel na Cloudflare](#1-criar-o-túnel-na-cloudflare)
 - [2. Configurar o `.env`](#2-configurar-o-env)
@@ -52,6 +53,31 @@ do upload, com uma destas ferramentas:
 Outros tipos de ficheiro (imagens, vídeo, áudio, Office legado `.doc`/`.xls`/`.ppt`)
 sobem sem qualquer limpeza — nem a app desktop nem o CLI cobrem esses
 formatos atualmente.
+
+## Correr sem Docker (servidor standalone em Go)
+
+Para quem preferir não usar Docker, `standalone/` tem uma porta completa do
+servidor em Go: um único binário estático, sem runtime a instalar, sem
+`npm install`, sem toolchain C. Paridade funcional total com o servidor
+Node desta secção — mesmas rotas, mesmo modelo de cookies/CSRF, mesmo
+WebSocket, mesmo frontend embutido no binário — e **partilha o mesmo
+schema SQLite**, por isso o mesmo `DATA_DIR`/`UPLOADS_DIR` funciona com
+qualquer um dos dois (não correr os dois em simultâneo sobre a mesma
+pasta).
+
+```bash
+./filepad-server-linux-amd64   # binário pré-compilado, nas Releases do GitHub
+```
+
+Usa as mesmas variáveis de ambiente (o mesmo `.env` da raiz serve). Para
+expor publicamente sem Docker, corre o `cloudflared` como processo à parte:
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+
+Ver `standalone/README.md` para instruções completas (compilar a partir do
+código, cross-compile para as 3 plataformas, etc.).
 
 ## Pré-requisitos
 
@@ -240,7 +266,8 @@ filepad/
 │       ├── app.js                        # lógica do pad (texto, WS, ficheiros)
 │       └── upload.js                      # drag&drop, colar, progresso, sem limpeza
 ├── cli/                       # filepad-clean: CLI Go, limpa Office localmente (ver cli/README.md)
-└── desktop/                   # app Electron: limpa Office/PDF localmente antes do upload (ver desktop/README.md)
+├── desktop/                    # app Electron: limpa Office/PDF localmente antes do upload (ver desktop/README.md)
+└── standalone/                  # servidor em Go, sem Docker, binário único (ver standalone/README.md)
 ```
 
 ## Variáveis de ambiente
