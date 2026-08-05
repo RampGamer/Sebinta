@@ -1,0 +1,22 @@
+node_modules/
+npm-debug.log*
+
+# Dados persistentes locais (usados fora do Docker, ex.: testes)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+uploads/final/*
+uploads/quarantine/*
+!uploads/final/.gitkeep
+!uploads/quarantine/.gitkeep
+
+# Ambiente
+.env
+.env.local
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+*.log
