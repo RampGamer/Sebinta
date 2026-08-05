@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"time"
 )
 
 // O binário oficial do cloudflared vem embutido (ver tunnel_<os>_<arch>.go,
@@ -119,6 +120,8 @@ func startTunnel(cfg *Config, urlCh chan<- string) (*tunnelHandle, error) {
 	return &tunnelHandle{cmd: cmd, tempDir: tempDir}, nil
 }
 
+var logFileHandle *os.File
+
 // setupLogging escreve os logs simultaneamente no terminal e num ficheiro
 // (cfg.LogPath, ou LOG_FILE) — sem isto, correr o servidor em background
 // (nohup, systemd sem captura de stdout, etc.) perdia todo o histórico.
@@ -130,7 +133,37 @@ func setupLogging(cfg *Config) (io.Closer, error) {
 	if err != nil {
 		return nil, err
 	}
+	logFileHandle = f
 	log.SetOutput(io.MultiWriter(os.Stdout, f))
 	log.SetFlags(log.Ldate | log.Ltime)
 	return f, nil
+}
+
+func isStdoutTTY() bool {
+	info, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
+}
+
+const ansiBoldCyan = "\x1b[1;36m"
+const ansiReset = "\x1b[0m"
+
+// printHighlight regista a mesma linha que log.Printf registaria (mesmo
+// timestamp, mesmo ficheiro), mas no terminal (se for mesmo um terminal —
+// nunca metemos códigos ANSI num ficheiro de log ou numa pipe) destaca-a a
+// cores para se distinguir do resto do texto. Usado só para a linha do URL
+// do túnel, que é a informação mais importante ao arrancar.
+func printHighlight(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	ts := time.Now().Format("2006/01/02 15:04:05")
+	if logFileHandle != nil {
+		fmt.Fprintf(logFileHandle, "%s %s\n", ts, msg)
+	}
+	if isStdoutTTY() {
+		fmt.Fprintf(os.Stdout, "%s %s%s%s\n", ts, ansiBoldCyan, msg, ansiReset)
+	} else {
+		fmt.Fprintf(os.Stdout, "%s %s\n", ts, msg)
+	}
 }
