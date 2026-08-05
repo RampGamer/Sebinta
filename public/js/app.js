@@ -11,6 +11,23 @@
 (function () {
   const padId = decodeURIComponent(window.location.pathname.replace(/^\/+/, ''));
 
+  // Raiz "/" sem nome de pad: não há nada válido para carregar (o servidor
+  // rejeitaria com invalid_pad_id) — mostra um ecrã a pedir um nome em vez
+  // de tentar e falhar.
+  if (!padId) {
+    document.getElementById('pad-header').hidden = true;
+    document.getElementById('pad-main').hidden = true;
+    const landing = document.getElementById('landing');
+    landing.hidden = false;
+    document.getElementById('form-landing').addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const name = document.getElementById('landing-pad-name').value.trim();
+      if (!name) return;
+      window.location.href = new URL(name, window.location.origin + '/').href;
+    });
+    return;
+  }
+
   const editor = document.getElementById('editor');
   const padNameEl = document.getElementById('pad-name');
   const statusDot = document.getElementById('status-dot');
@@ -29,6 +46,11 @@
   const modalClear = document.getElementById('modal-clear');
   const protectedBadge = document.getElementById('protected-badge');
   const btnPassword = document.getElementById('btn-password');
+
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxName = document.getElementById('lightbox-name');
+  const lightboxDownload = document.getElementById('lightbox-download');
 
   let state = { version: 0, hasPassword: false, locked: false };
 
@@ -155,6 +177,8 @@
       img.alt = file.name;
       img.loading = 'lazy';
       preview.appendChild(img);
+      preview.title = 'Clica para pré-visualizar';
+      preview.addEventListener('click', () => openLightbox(file));
     } else if (file.kind === 'video') {
       const video = document.createElement('video');
       video.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/preview`);
@@ -203,6 +227,24 @@
     card.appendChild(meta);
     return card;
   }
+
+  // --- pré-visualização de imagens em ecrã inteiro ---
+  function openLightbox(file) {
+    lightboxImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/preview`);
+    lightboxImg.alt = file.name;
+    lightboxName.textContent = file.name; // textContent: nunca innerHTML, previne XSS
+    lightboxDownload.onclick = () => {
+      window.location.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/download`);
+    };
+    lightbox.hidden = false;
+  }
+  function closeLightbox() {
+    lightbox.hidden = true;
+    lightboxImg.src = '';
+  }
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (ev) => { if (ev.target === lightbox) closeLightbox(); });
+  window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !lightbox.hidden) closeLightbox(); });
 
   async function deleteFile(fileId) {
     const res = await api(`/api/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' });

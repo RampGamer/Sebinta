@@ -47,6 +47,10 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
 });
 
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'favicon.ico'));
+});
+
 // --- API ---
 app.use('/api/auth', authRoutes);
 app.use('/api/pad', auth.siteAuthApiGate, padRoutes);

@@ -5,11 +5,25 @@
 <title>Filepad</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<link rel="icon" href="/favicon.ico">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-<header class="topbar">
+<div class="landing" id="landing" hidden>
+  <div class="landing-card">
+    <div class="landing-logo" aria-hidden="true"></div>
+    <h1>Filepad</h1>
+    <p class="hint">Escolhe um nome para o teu pad — se já existir, abre-o; se não, é criado agora.</p>
+    <form id="form-landing" autocomplete="off">
+      <input type="text" id="landing-pad-name" placeholder="ex.: notas-do-projeto" autofocus required>
+      <button type="submit" class="primary">Abrir pad</button>
+    </form>
+    <p class="hint">Podes usar <code>/</code> para organizar em pastas, ex.: <code>equipa/notas</code>.</p>
+  </div>
+</div>
+
+<header class="topbar" id="pad-header">
   <div class="pad-name" id="pad-name">/</div>
   <span class="protected-badge" id="protected-badge" title="Este pad está protegido por password" hidden>🔒 Protegido</span>
   <div class="status">
@@ -22,7 +36,7 @@
   </div>
 </header>
 
-<main>
+<main id="pad-main">
   <textarea id="editor" placeholder="Escreve aqui… é guardado automaticamente." spellcheck="false"></textarea>
 
   <section class="files">
@@ -81,6 +95,16 @@
       <button type="button" id="btn-clear-cancel">Cancelar</button>
       <button type="button" id="btn-clear-confirm" class="danger">Apagar tudo</button>
     </div>
+  </div>
+</div>
+
+<!-- Lightbox: pré-visualização de imagem em ecrã inteiro, antes de transferir -->
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lightbox-close" id="lightbox-close" title="Fechar (Esc)">✕</button>
+  <img id="lightbox-img" alt="">
+  <div class="lightbox-bar">
+    <span id="lightbox-name"></span>
+    <button id="lightbox-download">⬇ Transferir</button>
   </div>
 </div>
 

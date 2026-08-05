@@ -129,6 +129,10 @@ main {
   width: 100%;
   margin: 0 auto;
 }
+/* main {display:flex} (regra de autor) tem prioridade sobre o [hidden] da
+   folha de estilos do browser (só UA) — sem isto o "hidden" não escondia
+   nada. */
+#pad-header[hidden], #pad-main[hidden] { display: none; }
 
 #editor {
   width: 100%;
@@ -338,43 +342,101 @@ footer.hint {
   .file-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 
-/* --- Página de diagnóstico de metadados --- */
-.diag-page main { max-width: 900px; }
-.diag-page h1 { font-size: 1.15rem; margin: 0 0 0.2rem; }
-.diag-page p.lead { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 1.2rem; }
-.diag-section {
+/* --- Página de aterragem (raiz "/", sem pad escolhido) --- */
+.landing {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.landing-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+.landing-logo {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.2rem;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--bg-panel-2), var(--bg));
+  border: 1px solid var(--border);
+  position: relative;
+}
+.landing-logo::before {
+  content: "";
+  position: absolute;
+  left: 22px; top: 18px; right: 26px; bottom: 18px;
+  background: var(--text);
+  border-radius: 5px;
+  clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);
+}
+.landing-logo::after {
+  content: "";
+  position: absolute;
+  left: 30px; top: 34px; width: 16px; height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 10px 0 var(--accent), 0 20px 0 var(--accent);
+  opacity: 0.9;
+}
+.landing-card h1 { font-size: 1.6rem; margin: 0 0 0.5rem; }
+.landing-card p.hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 1.2rem; }
+.landing-card code {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.85em;
+}
+#form-landing { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+#form-landing input {
+  flex: 1;
+  text-align: left;
+}
+
+/* --- Lightbox: pré-visualização de imagem em ecrã inteiro --- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(6, 7, 10, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+}
+.lightbox[hidden] { display: none; }
+.lightbox img {
+  max-width: 100%;
+  max-height: calc(100% - 3.5rem);
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.1rem;
-  margin-bottom: 1.2rem;
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
 }
-.diag-section h2 { font-size: 0.95rem; margin: 0 0 0.8rem; }
-.diag-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
-.diag-file-meta { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.8rem; }
-.diag-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-@media (max-width: 700px) { .diag-columns { grid-template-columns: 1fr; } }
-.diag-column h3 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); margin: 0 0 0.6rem; }
-.diag-summary { font-size: 0.85rem; padding: 0.5rem 0.7rem; border-radius: var(--radius); margin-bottom: 0.7rem; }
-.diag-summary.ok { background: rgba(76, 175, 125, 0.12); border: 1px solid rgba(76, 175, 125, 0.4); color: #8fe0b8; }
-.diag-summary.warn { background: rgba(224, 90, 90, 0.12); border: 1px solid rgba(224, 90, 90, 0.4); color: #ffb4b4; }
-.diag-summary.muted { background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--text-dim); }
-.finding-card {
-  border: 1px solid var(--border);
-  border-left-width: 3px;
-  border-radius: 6px;
-  padding: 0.5rem 0.7rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.8rem;
-  background: var(--bg-panel-2);
+.lightbox-bar {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  max-width: 100%;
 }
-.finding-card.warning { border-left-color: var(--danger); }
-.finding-card.info { border-left-color: var(--text-dim); }
-.finding-card .finding-label { font-weight: 600; margin-bottom: 0.2rem; }
-.finding-card .finding-detail { color: var(--text-dim); word-break: break-word; white-space: pre-wrap; }
-.finding-card ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
-.finding-card li { word-break: break-word; }
-.diag-file-list { display: flex; flex-direction: column; gap: 0.4rem; }
-.diag-file-list .item { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; background: var(--bg-panel-2); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
-.diag-file-list .item .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.back-link { display: inline-block; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-dim); }
+.lightbox-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50vw; }
+.file-card .preview { cursor: pointer; }
