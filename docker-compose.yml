@@ -1,0 +1,46 @@
+services:
+  app:
+    build: .
+    image: filepad:latest
+    restart: unless-stopped
+    environment:
+      - SITE_PASSWORD=${SITE_PASSWORD:-}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
+      - FILE_TTL_DAYS=${FILE_TTL_DAYS:-}
+      - COOKIE_SECRET=${COOKIE_SECRET:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - PORT=3000
+      - NODE_ENV=production
+    volumes:
+      - filepad_data:/app/data
+      - filepad_uploads:/app/uploads
+    # Sem "ports": a app não é exposta diretamente na máquina. O único
+    # acesso vem do serviço cloudflared, pela rede interna do Docker.
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run --token ${TUNNEL_TOKEN}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - internal
+    # Também sem "ports": o cloudflared só faz ligações de saída para a
+    # rede da Cloudflare; o HTTPS público é tratado inteiramente por ela.
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  filepad_data:
+  filepad_uploads:

@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log*
+data
+uploads/final/*
+uploads/quarantine/*
+.env
+.env.local
+.git
+.gitignore
+README.md
+*.md
+.vscode
+.idea
+.DS_Store
