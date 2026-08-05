@@ -12,6 +12,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { stripOoxmlMetadata } = require('./officeClean');
 
 const EXIFTOOL_BIN = process.env.EXIFTOOL_BIN || 'exiftool';
 const FFMPEG_BIN = process.env.FFMPEG_BIN || 'ffmpeg';
@@ -26,22 +27,40 @@ function run(bin, args) {
 }
 
 // Familias para as quais o requisito 11 exige explicitamente exiftool -all=
-// (imagens, PDFs e documentos). Uma falha aqui rejeita o upload.
-const EXIFTOOL_STRICT_FAMILIES = new Set(['image', 'pdf', 'zip', 'ole', 'svg']);
+// (imagens, PDFs e documentos legados). Uma falha aqui rejeita o upload.
+// NOTA: 'zip' (OOXML/.docx/.xlsx/.pptx) foi deliberadamente removido desta
+// lista — ver comentário em cleanInQuarantine().
+const EXIFTOOL_STRICT_FAMILIES = new Set(['image', 'pdf', 'ole', 'svg']);
 const AV_FAMILIES = new Set(['video', 'audio']);
 
 /**
  * Limpa metadados de um ficheiro que está na pasta de quarentena, em função
- * da família detetada pelos magic bytes (server/services/fileType.js).
+ * da família/tipo detetados pelos magic bytes (server/services/fileType.js).
  * O ficheiro é limpo *in place* dentro da própria quarentena.
  *
  * @param {string} filePath caminho do ficheiro dentro da quarentena
- * @param {{family:string}} sniffed resultado de fileType.sniff()
+ * @param {{family:string, kind:string}} sniffed resultado de fileType.sniff()
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 async function cleanInQuarantine(filePath, sniffed) {
   if (AV_FAMILIES.has(sniffed.family)) {
     return cleanAudioVideo(filePath);
+  }
+
+  if (sniffed.kind === 'ooxml') {
+    // O exiftool desta imagem NÃO sabe escrever .docx/.xlsx/.pptx (testado:
+    // "Writing of DOCX files is not yet supported"). A limpeza destes
+    // ficheiros é feita em Node puro (server/services/officeClean.js), que
+    // espelha e reforça a lógica já usada no browser — continua a ser uma
+    // camada obrigatória e bloqueante, exatamente como as restantes.
+    try {
+      const original = await fs.promises.readFile(filePath);
+      const cleaned = stripOoxmlMetadata(original);
+      await fs.promises.writeFile(filePath, cleaned);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, reason: `office_clean_failed: ${e.message}` };
+    }
   }
 
   if (EXIFTOOL_STRICT_FAMILIES.has(sniffed.family)) {

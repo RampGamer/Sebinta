@@ -15,11 +15,20 @@ COPY public ./public
 FROM node:20-bookworm-slim
 WORKDIR /app
 
-# exiftool (limpeza de metadados de imagens/PDF/documentos) e ffmpeg (limpeza
-# de metadados de vídeo/áudio) — camada de quarentena obrigatória no servidor.
+# exiftool (limpeza de metadados de imagens/PDF/documentos legados) e ffmpeg
+# (limpeza de vídeo/áudio) — camada de quarentena obrigatória no servidor.
+# libarchive-zip-perl: sem este módulo Perl o exiftool nem sequer consegue
+# LER corretamente ficheiros Office OOXML (.docx/.xlsx/.pptx, que são ZIPs;
+# sem ele trata-os como ZIP genérico e ignora todas as propriedades lá
+# dentro). A ESCRITA/limpeza destes formatos não depende do exiftool — é
+# feita em Node puro (server/services/officeClean.js) porque a versão de
+# exiftool disponível no Debian não suporta escrever OOXML — mas manter
+# este módulo instalado garante que uma leitura manual de diagnóstico
+# (ex.: `docker exec ... exiftool ficheiro.docx`) mostra o conteúdo real.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libimage-exiftool-perl \
+        libarchive-zip-perl \
         ffmpeg \
         curl \
     && rm -rf /var/lib/apt/lists/* \

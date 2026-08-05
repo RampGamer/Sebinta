@@ -350,6 +350,18 @@ function scanOoxml(buffer) {
   }
   const thumb = Object.keys(zip).find((k) => /^docProps\/thumbnail\./.test(k));
   if (thumb) findings.push({ label: thumb, severity: 'warning', detail: 'thumbnail incorporada no documento' });
+
+  // Custom XML Parts (customXml/) — usadas por ferramentas de
+  // classificação/DLP empresariais (Titus, Microsoft Purview Information
+  // Protection, Boldon James, etc.) para guardar etiquetas fora das
+  // propriedades habituais do Office, ex.: TitusGUID, CLASSIFICATION.
+  const customXmlParts = Object.keys(zip).filter((k) => k.startsWith('customXml/') && k.endsWith('.xml'));
+  for (const part of customXmlParts) {
+    let xml;
+    try { xml = decoder.decode(zip[part]); } catch (e) { continue; }
+    findings.push({ label: `${part} (Custom XML Part)`, severity: 'warning', detail: xml.slice(0, 600) });
+  }
+
   return { supported: true, findings };
 }
 
