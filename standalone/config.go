@@ -115,7 +115,7 @@ func loadConfig() *Config {
 	}
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
-		dbPath = filepath.Join(dataDir, "filepad.db")
+		dbPath = filepath.Join(dataDir, "sebinta.db")
 	}
 
 	cookieSecret := os.Getenv("COOKIE_SECRET")
@@ -125,7 +125,7 @@ func loadConfig() *Config {
 
 	logPath := os.Getenv("LOG_FILE")
 	if logPath == "" {
-		logPath = filepath.Join(dataDir, "filepad.log")
+		logPath = filepath.Join(dataDir, "sebinta.log")
 	}
 
 	port := os.Getenv("PORT")

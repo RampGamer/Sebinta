@@ -28,19 +28,19 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `filepad-clean — limpa metadados de documentos Office (.docx/.xlsx/.pptx) localmente, sem depender do servidor.
+	fmt.Fprint(os.Stderr, `sebinta-clean — limpa metadados de documentos Office (.docx/.xlsx/.pptx) localmente, sem depender do servidor.
 
 Uso:
-  filepad-clean clean [-o ficheiro-saida] <ficheiro.docx>
+  sebinta-clean clean [-o ficheiro-saida] <ficheiro.docx>
       Limpa o ficheiro e grava o resultado (por omissão: <nome>.clean.<ext>).
       Nunca contacta a rede.
 
-  filepad-clean send -server URL -pad NOME [-site-password PASS] [-pad-password PASS] <ficheiro.docx>
-      Limpa o ficheiro localmente e envia-o diretamente para um pad do Filepad.
+  sebinta-clean send -server URL -pad NOME [-site-password PASS] [-pad-password PASS] <ficheiro.docx>
+      Limpa o ficheiro localmente e envia-o diretamente para um pad do Sebinta.
 
 Exemplos:
-  filepad-clean clean relatorio.docx
-  filepad-clean send -server https://notas.exemplo.com -pad projeto-x relatorio.docx
+  sebinta-clean clean relatorio.docx
+  sebinta-clean send -server https://notas.exemplo.com -pad projeto-x relatorio.docx
 `)
 }
 
@@ -75,7 +75,7 @@ func cmdClean(args []string) {
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "uso: filepad-clean clean [-o ficheiro-saida] <ficheiro>")
+		fmt.Fprintln(os.Stderr, "uso: sebinta-clean clean [-o ficheiro-saida] <ficheiro>")
 		os.Exit(1)
 	}
 	input := rest[0]
@@ -104,7 +104,7 @@ func cmdClean(args []string) {
 
 func cmdSend(args []string) {
 	fs := flag.NewFlagSet("send", flag.ExitOnError)
-	server := fs.String("server", "", "URL base do Filepad (ex.: https://notas.exemplo.com)")
+	server := fs.String("server", "", "URL base do Sebinta (ex.: https://notas.exemplo.com)")
 	pad := fs.String("pad", "", "nome do pad de destino")
 	sitePassword := fs.String("site-password", "", "password do site, se estiver ativa")
 	padPassword := fs.String("pad-password", "", "password deste pad, se estiver protegido")
@@ -113,7 +113,7 @@ func cmdSend(args []string) {
 	}
 	rest := fs.Args()
 	if *server == "" || *pad == "" || len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "uso: filepad-clean send -server URL -pad NOME [-site-password P] [-pad-password P] <ficheiro>")
+		fmt.Fprintln(os.Stderr, "uso: sebinta-clean send -server URL -pad NOME [-site-password P] [-pad-password P] <ficheiro>")
 		os.Exit(1)
 	}
 	input := rest[0]
@@ -136,7 +136,7 @@ func cmdSend(args []string) {
 		fmt.Printf("Aviso: %q não é Office OOXML — não há limpeza local para este tipo; o servidor ainda o limpa em quarentena antes de ficar acessível.\n", input)
 	}
 
-	client, err := NewFilepadClient(*server)
+	client, err := NewSebintaClient(*server)
 	if err != nil {
 		fatalf("servidor inválido: %v", err)
 	}

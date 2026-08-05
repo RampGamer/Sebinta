@@ -1,4 +1,4 @@
-# filepad-clean
+# sebinta-clean
 
 A command-line tool, written in Go, that strips metadata from Office
 documents (`.docx`/`.xlsx`/`.pptx`) **entirely outside the browser**,
@@ -20,16 +20,16 @@ Doesn't handle legacy `.doc`/`.xls`/`.ppt` (binary OLE2 format).
 Requires Go 1.21+. From this folder:
 
 ```bash
-go build -o filepad-clean .
+go build -o sebinta-clean .
 ```
 
 ### Cross-compile for all three OSes
 
 ```bash
-GOOS=linux   GOARCH=amd64 go build -o dist/filepad-clean-linux-amd64     .
-GOOS=darwin  GOARCH=arm64 go build -o dist/filepad-clean-macos-arm64     .
-GOOS=darwin  GOARCH=amd64 go build -o dist/filepad-clean-macos-amd64     .
-GOOS=windows GOARCH=amd64 go build -o dist/filepad-clean-windows-amd64.exe .
+GOOS=linux   GOARCH=amd64 go build -o dist/sebinta-clean-linux-amd64     .
+GOOS=darwin  GOARCH=arm64 go build -o dist/sebinta-clean-macos-arm64     .
+GOOS=darwin  GOARCH=amd64 go build -o dist/sebinta-clean-macos-amd64     .
+GOOS=windows GOARCH=amd64 go build -o dist/sebinta-clean-windows-amd64.exe .
 ```
 
 Each command produces a single dependency-free binary — just copy it and run it.
@@ -39,20 +39,20 @@ Each command produces a single dependency-free binary — just copy it and run i
 ### Just clean (never touches the network)
 
 ```bash
-./filepad-clean clean report.docx
+./sebinta-clean clean report.docx
 # writes report.clean.docx and lists what was removed
 ```
 
-### Clean and upload straight to a Filepad pad
+### Clean and upload straight to a Sebinta pad
 
 ```bash
-./filepad-clean send -server https://notes.example.com -pad project-x report.docx
+./sebinta-clean send -server https://notes.example.com -pad project-x report.docx
 
 # if the site has a global password:
-./filepad-clean send -server https://notes.example.com -pad project-x -site-password PASSWORD report.docx
+./sebinta-clean send -server https://notes.example.com -pad project-x -site-password PASSWORD report.docx
 
 # if that specific pad has its own password:
-./filepad-clean send -server https://notes.example.com -pad project-x -pad-password PASSWORD report.docx
+./sebinta-clean send -server https://notes.example.com -pad project-x -pad-password PASSWORD report.docx
 ```
 
 `send` cleans the file locally first (same logic as `clean`), then

@@ -12,17 +12,17 @@ import (
 	"strings"
 )
 
-// FilepadClient fala com a API HTTP do Filepad, reproduzindo o mesmo fluxo
+// SebintaClient fala com a API HTTP do Sebinta, reproduzindo o mesmo fluxo
 // que o browser faz: obter o cookie CSRF (double-submit), autenticar-se
 // opcionalmente contra a password do site e/ou de um pad, e só depois
 // enviar o ficheiro para /api/files.
-type FilepadClient struct {
+type SebintaClient struct {
 	baseURL string
 	http    *http.Client
 	csrf    string
 }
 
-func NewFilepadClient(server string) (*FilepadClient, error) {
+func NewSebintaClient(server string) (*SebintaClient, error) {
 	u, err := url.Parse(server)
 	if err != nil || u.Scheme != "http" && u.Scheme != "https" || u.Host == "" {
 		return nil, fmt.Errorf("indica um URL completo, ex.: https://notas.exemplo.com")
@@ -31,7 +31,7 @@ func NewFilepadClient(server string) (*FilepadClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &FilepadClient{
+	return &SebintaClient{
 		baseURL: strings.TrimRight(server, "/"),
 		http:    &http.Client{Jar: jar},
 	}, nil
@@ -39,7 +39,7 @@ func NewFilepadClient(server string) (*FilepadClient, error) {
 
 // EnsureCsrf faz um pedido GET inofensivo só para receber o cookie fp_csrf
 // que o servidor define em qualquer resposta (server/auth.js:ensureCsrfCookie).
-func (c *FilepadClient) EnsureCsrf() error {
+func (c *SebintaClient) EnsureCsrf() error {
 	req, err := http.NewRequest(http.MethodGet, c.baseURL+"/health", nil)
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (c *FilepadClient) EnsureCsrf() error {
 	return nil
 }
 
-func (c *FilepadClient) postJSON(path string, payload interface{}) (*http.Response, error) {
+func (c *SebintaClient) postJSON(path string, payload interface{}) (*http.Response, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func readAPIError(resp *http.Response) string {
 	return fmt.Sprintf("status %d", resp.StatusCode)
 }
 
-func (c *FilepadClient) SiteLogin(password string) error {
+func (c *SebintaClient) SiteLogin(password string) error {
 	resp, err := c.postJSON("/api/auth/login", map[string]string{"password": password})
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func (c *FilepadClient) SiteLogin(password string) error {
 	return nil
 }
 
-func (c *FilepadClient) UnlockPad(pad, password string) error {
+func (c *SebintaClient) UnlockPad(pad, password string) error {
 	resp, err := c.postJSON("/api/pad/unlock?id="+url.QueryEscape(pad), map[string]string{"password": password})
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func (c *FilepadClient) UnlockPad(pad, password string) error {
 
 // UploadFile envia o ficheiro (já limpo) para /api/files?id=<pad> e devolve
 // o id atribuído pelo servidor.
-func (c *FilepadClient) UploadFile(pad, filename string, data []byte) (string, error) {
+func (c *SebintaClient) UploadFile(pad, filename string, data []byte) (string, error) {
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
 	part, err := mw.CreateFormFile("file", filename)

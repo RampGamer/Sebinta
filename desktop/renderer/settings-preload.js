@@ -2,7 +2,7 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('filepadSettings', {
-  getCurrentServerUrl: () => ipcRenderer.invoke('filepad:get-current-server-url'),
-  saveServerUrl: (url) => ipcRenderer.invoke('filepad:save-server-url', url),
+contextBridge.exposeInMainWorld('sebintaSettings', {
+  getCurrentServerUrl: () => ipcRenderer.invoke('sebinta:get-current-server-url'),
+  saveServerUrl: (url) => ipcRenderer.invoke('sebinta:save-server-url', url),
 });

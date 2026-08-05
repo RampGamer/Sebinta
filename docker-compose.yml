@@ -1,7 +1,9 @@
+name: sebinta
+
 services:
   app:
     build: .
-    image: filepad:latest
+    image: sebinta:latest
     restart: unless-stopped
     environment:
       - SITE_PASSWORD=${SITE_PASSWORD:-}
@@ -12,8 +14,8 @@ services:
       - PORT=3000
       - NODE_ENV=production
     volumes:
-      - filepad_data:/app/data
-      - filepad_uploads:/app/uploads
+      - sebinta_data:/app/data
+      - sebinta_uploads:/app/uploads
     # Sem "ports": a app não é exposta diretamente na máquina. O único
     # acesso vem do serviço cloudflared, pela rede interna do Docker.
     networks:
@@ -52,5 +54,5 @@ networks:
     driver: bridge
 
 volumes:
-  filepad_data:
-  filepad_uploads:
+  sebinta_data:
+  sebinta_uploads:

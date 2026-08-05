@@ -78,7 +78,7 @@ wsModule.attach(server);
 cleanup.start();
 
 server.listen(config.port, () => {
-  console.log(`Filepad a correr na porta ${config.port} (env=${config.nodeEnv})`);
+  console.log(`Sebinta a correr na porta ${config.port} (env=${config.nodeEnv})`);
   console.log(`Password do site: ${auth.siteAuthEnabled() ? 'ativa' : 'desativada'}`);
 });
 

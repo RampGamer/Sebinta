@@ -2,25 +2,25 @@
 
 /*
  * Preload da janela principal — corre em contexto isolado (contextIsolation:
- * true), com acesso ao DOM da página real do Filepad mas não aos objetos JS
+ * true), com acesso ao DOM da página real do Sebinta mas não aos objetos JS
  * que ela define. Duas coisas:
  *
- * 1. Expõe window.filepadDesktop.cleanFile(name, buffer) para o mundo
+ * 1. Expõe window.sebintaDesktop.cleanFile(name, buffer) para o mundo
  *    principal via contextBridge — a única API que a página pode chamar.
  * 2. Depois de app.js/upload.js correrem (DOMContentLoaded), injeta um
- *    pequeno <script> que liga window.Filepad.setPreUploadHook (definido em
+ *    pequeno <script> que liga window.Sebinta.setPreUploadHook (definido em
  *    public/js/upload.js) a essa API, e uma barra de estado no topo da
  *    janela com o toggle "limpar metadados" e uma caixa "ir para pad" (a
  *    janela principal só carrega um URL fixo — sem isto não havia forma de
- *    mudar de pad sem passar pelo menu "Mudar servidor…").
+ *    mudar de pad sem abrir o ⚙ das definições).
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
 
 let cleanEnabled = true;
 
-contextBridge.exposeInMainWorld('filepadDesktop', {
-  cleanFile: (name, buffer) => ipcRenderer.invoke('filepad:clean', { name, buffer, cleanEnabled }),
+contextBridge.exposeInMainWorld('sebintaDesktop', {
+  cleanFile: (name, buffer) => ipcRenderer.invoke('sebinta:clean', { name, buffer, cleanEnabled }),
 });
 
 // Mesma paleta de public/css/style.css, para a barra parecer parte da app
@@ -34,33 +34,33 @@ const BAR_CSS = `
 
 function injectStatusBar() {
   const bar = document.createElement('div');
-  bar.id = 'filepad-desktop-bar';
+  bar.id = 'sebinta-desktop-bar';
   bar.style.cssText = BAR_CSS;
   bar.innerHTML = `
     <label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none;">
-      <input type="checkbox" id="filepad-desktop-toggle" checked>
+      <input type="checkbox" id="sebinta-desktop-toggle" checked>
       Limpar metadados antes de enviar
     </label>
     <span style="width:1px;height:16px;background:#2a2f3d;"></span>
-    <input type="text" id="filepad-desktop-pad-input" placeholder="nome do pad" style="
+    <input type="text" id="sebinta-desktop-pad-input" placeholder="nome do pad" style="
       background:#1d2130;border:1px solid #2a2f3d;color:#e7e9ee;border-radius:6px;
       padding:4px 9px;font:inherit;width:220px;">
-    <button id="filepad-desktop-pad-go" style="
+    <button id="sebinta-desktop-pad-go" style="
       background:#5b8cff;border:none;color:#0f1115;border-radius:6px;padding:5px 12px;
       font:inherit;font-weight:600;cursor:pointer;">Ir</button>
-    <span id="filepad-desktop-status" style="opacity:.7;flex:1;"></span>
-    <button id="filepad-desktop-settings" title="Mudar servidor" style="
+    <span id="sebinta-desktop-status" style="opacity:.7;flex:1;"></span>
+    <button id="sebinta-desktop-settings" title="Mudar servidor" style="
       background:transparent;border:1px solid #2a2f3d;color:#9aa0b0;border-radius:6px;
       width:26px;height:26px;font:14px inherit;cursor:pointer;">⚙</button>
   `;
   document.documentElement.prepend(bar);
   document.body.style.marginTop = `${bar.offsetHeight}px`;
 
-  const toggle = bar.querySelector('#filepad-desktop-toggle');
+  const toggle = bar.querySelector('#sebinta-desktop-toggle');
   toggle.addEventListener('change', () => { cleanEnabled = toggle.checked; });
 
-  const padInput = bar.querySelector('#filepad-desktop-pad-input');
-  const padGo = bar.querySelector('#filepad-desktop-pad-go');
+  const padInput = bar.querySelector('#sebinta-desktop-pad-input');
+  const padGo = bar.querySelector('#sebinta-desktop-pad-go');
   padInput.value = decodeURIComponent(location.pathname.replace(/^\/+/, ''));
   function goToPad() {
     const raw = padInput.value.trim();
@@ -70,30 +70,30 @@ function injectStatusBar() {
   padGo.addEventListener('click', goToPad);
   padInput.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') goToPad(); });
 
-  bar.querySelector('#filepad-desktop-settings').addEventListener('click', () => {
-    ipcRenderer.send('filepad:open-settings');
+  bar.querySelector('#sebinta-desktop-settings').addEventListener('click', () => {
+    ipcRenderer.send('sebinta:open-settings');
   });
 
-  return bar.querySelector('#filepad-desktop-status');
+  return bar.querySelector('#sebinta-desktop-status');
 }
 
 function injectUploadHook() {
   const script = document.createElement('script');
   script.textContent = `
     (function () {
-      if (!window.Filepad || !window.Filepad.setPreUploadHook || !window.filepadDesktop) return;
-      window.Filepad.setPreUploadHook(async function (file, onStatus) {
+      if (!window.Sebinta || !window.Sebinta.setPreUploadHook || !window.sebintaDesktop) return;
+      window.Sebinta.setPreUploadHook(async function (file, onStatus) {
         try {
           const buffer = await file.arrayBuffer();
-          const result = await window.filepadDesktop.cleanFile(file.name, buffer);
+          const result = await window.sebintaDesktop.cleanFile(file.name, buffer);
           if (!result || !result.cleaned) return file;
           if (onStatus) onStatus(result.forced ? 'tags DLP detetadas — a limpar…' : 'a limpar metadados…');
-          window.dispatchEvent(new CustomEvent('filepad-desktop:cleaned', {
+          window.dispatchEvent(new CustomEvent('sebinta-desktop:cleaned', {
             detail: { name: file.name, forced: !!result.forced, removed: result.removed || [] },
           }));
           return new File([result.buffer], file.name, { type: file.type });
         } catch (err) {
-          console.error('[filepad-desktop] limpeza falhou, a enviar ficheiro original:', err);
+          console.error('[sebinta-desktop] limpeza falhou, a enviar ficheiro original:', err);
           return file;
         }
       });
@@ -106,7 +106,7 @@ function injectUploadHook() {
 window.addEventListener('DOMContentLoaded', () => {
   const statusEl = injectStatusBar();
   injectUploadHook();
-  window.addEventListener('filepad-desktop:cleaned', (ev) => {
+  window.addEventListener('sebinta-desktop:cleaned', (ev) => {
     const { name, forced, removed } = ev.detail;
     statusEl.textContent = forced
       ? `${name}: limpeza forçada (tags DLP detetadas) — ${removed.length} item(ns) removido(s)`

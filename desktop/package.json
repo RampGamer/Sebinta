@@ -1,7 +1,7 @@
 {
-  "name": "filepad-desktop",
+  "name": "sebinta-desktop",
   "version": "1.1.0",
-  "description": "App desktop Electron para o Filepad — mesma interface do browser, mas limpa Office/PDF localmente antes do upload.",
+  "description": "App desktop Electron para o Sebinta — mesma interface do browser, mas limpa Office/PDF localmente antes do upload.",
   "private": true,
   "license": "MIT",
   "main": "main.js",
@@ -22,8 +22,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.filepad.desktop",
-    "productName": "Filepad",
+    "appId": "com.sebinta.desktop",
+    "productName": "Sebinta",
     "icon": "build/icon.png",
     "files": [
       "main.js",

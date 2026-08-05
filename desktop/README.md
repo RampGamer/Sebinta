@@ -1,6 +1,6 @@
-# filepad-desktop
+# sebinta-desktop
 
-Desktop app (Electron) for Filepad. Opens the same interface you'd see in a
+Desktop app (Electron) for Sebinta. Opens the same interface you'd see in a
 normal browser — same pad, same text, same files, real-time sync included
 — but intercepts every upload to clean metadata locally, **before** the
 file leaves your computer:
@@ -31,7 +31,7 @@ npm install
 npm start
 ```
 
-The first time, it asks for your Filepad server's URL (the same Cloudflare
+The first time, it asks for your Sebinta server's URL (the same Cloudflare
 tunnel domain you already use in the browser, e.g.
 `https://notes.yourdomain.com`). It's remembered from then on — just open
 the app and you're on your pad, like opening a browser. To switch servers
@@ -48,5 +48,5 @@ copy under `AppData\Local`, just run it), and macOS (`.zip` of the `.app`,
 x64 and arm64 — not `.dmg`, which depends on macOS-only tooling). The
 macOS binaries aren't signed or notarized (no Apple certificate);
 Gatekeeper will block opening them by default — right-click → Open the
-first time, or `xattr -d com.apple.quarantine Filepad.app` after
+first time, or `xattr -d com.apple.quarantine Sebinta.app` after
 unzipping.

@@ -5,12 +5,12 @@
  * envio do ficheiro tal como está — este projeto não limpa metadados (ver
  * a app desktop em desktop/ e o CLI em cli/ para isso).
  *
- * `Filepad.setPreUploadHook(fn)` é um ponto de extensão opcional, sem uso
+ * `Sebinta.setPreUploadHook(fn)` é um ponto de extensão opcional, sem uso
  * nenhum aqui: a app desktop Electron injeta-o para poder interceptar o
  * ficheiro antes do envio (limpá-lo localmente) sem duplicar esta UI.
  */
 (function () {
-  if (!window.Filepad) return; // app.js não carregou (não deveria acontecer)
+  if (!window.Sebinta) return; // app.js não carregou (não deveria acontecer)
 
   const fileInput = document.getElementById('file-input');
   const chooseBtn = document.getElementById('btn-choose-file');
@@ -18,7 +18,7 @@
   const dropzoneOverlay = document.getElementById('dropzone-overlay');
 
   let preUploadHook = null;
-  window.Filepad.setPreUploadHook = (fn) => { preUploadHook = fn; };
+  window.Sebinta.setPreUploadHook = (fn) => { preUploadHook = fn; };
 
   function createProgressItem(name) {
     const item = document.createElement('div');
@@ -59,8 +59,8 @@
   function uploadWithProgress(file, progress) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', Filepad.apiUrl('/api/files'));
-      xhr.setRequestHeader('X-CSRF-Token', Filepad.csrfToken());
+      xhr.open('POST', Sebinta.apiUrl('/api/files'));
+      xhr.setRequestHeader('X-CSRF-Token', Sebinta.csrfToken());
       xhr.upload.addEventListener('progress', (ev) => {
         if (ev.lengthComputable) {
           progress.setProgress(Math.round((ev.loaded / ev.total) * 100));
@@ -106,11 +106,11 @@
       const toUpload = preUploadHook ? await preUploadHook(file, progress.setStatus) : file;
       progress.setStatus('a enviar…');
       await uploadWithProgress(toUpload, progress);
-      Filepad.refresh();
+      Sebinta.refresh();
       setTimeout(() => progress.remove(), 1200);
     } catch (err) {
       progress.setError(err.message || 'Falha desconhecida.');
-      Filepad.toast(`${file.name}: ${err.message || 'falha no envio'}`, 'error');
+      Sebinta.toast(`${file.name}: ${err.message || 'falha no envio'}`, 'error');
       setTimeout(() => progress.remove(), 8000);
     }
   }

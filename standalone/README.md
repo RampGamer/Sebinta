@@ -1,6 +1,6 @@
-# filepad-server (standalone)
+# sebinta-server (standalone)
 
-A Go port of the Filepad server (`server/`, Node/Express), for anyone who
+A Go port of the Sebinta server (`server/`, Node/Express), for anyone who
 wants to run it **without Docker** and without installing anything: a
 single static binary, no runtime to install, no `npm install`, no C
 toolchain (the SQLite driver used, `modernc.org/sqlite`, is pure Go) — and
@@ -26,7 +26,7 @@ Download the binary for your platform from
 directly:
 
 ```bash
-./filepad-server-linux-amd64
+./sebinta-server-linux-amd64
 ```
 
 That's the whole setup: it starts the server on port 3000, automatically
@@ -35,7 +35,7 @@ binary — nothing to install), and **prints the link as soon as it's
 ready**:
 
 ```
-Filepad available at: https://random-words-here.trycloudflare.com
+Sebinta available at: https://random-words-here.trycloudflare.com
 ```
 
 That link changes on every startup (that's how Quick Tunnel works — no
@@ -45,7 +45,7 @@ README — this binary reads it automatically, same as the Docker Compose
 `cloudflared` service). To run local-only, with no tunnel at all:
 
 ```bash
-DISABLE_TUNNEL=true ./filepad-server-linux-amd64
+DISABLE_TUNNEL=true ./sebinta-server-linux-amd64
 ```
 
 Configure the rest with the same environment variables as the Docker
@@ -53,11 +53,11 @@ version (the root project's `.env` works fine — this binary reads a
 `.env` file in the folder it runs from, if one exists):
 
 ```bash
-SITE_PASSWORD=apassword COOKIE_SECRET=$(openssl rand -hex 32) ./filepad-server-linux-amd64
+SITE_PASSWORD=apassword COOKIE_SECRET=$(openssl rand -hex 32) ./sebinta-server-linux-amd64
 ```
 
 Logs (including `cloudflared`'s own output) are also persisted to
-`DATA_DIR/filepad.log` (configurable with `LOG_FILE`), so you can run the
+`DATA_DIR/sebinta.log` (configurable with `LOG_FILE`), so you can run the
 binary in the background without losing the history.
 
 ## Build from source
@@ -72,16 +72,16 @@ them first:
 ```bash
 cd standalone
 ./fetch-cloudflared.sh   # downloads into assets/ (not checked in — ~40-55MB each)
-go build -o filepad-server .
+go build -o sebinta-server .
 ```
 
 ### Cross-compile for all 4 platforms
 
 ```bash
-CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -o dist/filepad-server-linux-amd64     .
-CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -o dist/filepad-server-macos-arm64     .
-CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -o dist/filepad-server-macos-amd64     .
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/filepad-server-windows-amd64.exe .
+CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -o dist/sebinta-server-linux-amd64     .
+CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -o dist/sebinta-server-macos-arm64     .
+CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -o dist/sebinta-server-macos-amd64     .
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/sebinta-server-windows-amd64.exe .
 ```
 
 `CGO_ENABLED=0` works for all of them because the SQLite driver
@@ -124,7 +124,7 @@ Same as `server/config.js` / the root `.env.example`: `PORT`, `DATA_DIR`,
 | Variable | Default | Description |
 |---|---|---|
 | `DISABLE_TUNNEL` | `false` | `true` to skip the tunnel entirely — local access only |
-| `LOG_FILE` | `DATA_DIR/filepad.log` | where logs are written, in addition to the terminal |
+| `LOG_FILE` | `DATA_DIR/sebinta.log` | where logs are written, in addition to the terminal |
 
 ## Out of scope
 

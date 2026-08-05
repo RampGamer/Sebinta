@@ -25,7 +25,7 @@ var trycloudflareRe = regexp.MustCompile(`https://[a-zA-Z0-9-]+\.trycloudflare\.
 // extractEmbeddedCloudflared grava o binário embutido num ficheiro
 // temporário executável e devolve o caminho.
 func extractEmbeddedCloudflared() (string, error) {
-	dir, err := os.MkdirTemp("", "filepad-cloudflared-")
+	dir, err := os.MkdirTemp("", "sebinta-cloudflared-")
 	if err != nil {
 		return "", err
 	}
