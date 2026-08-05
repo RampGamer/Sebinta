@@ -58,21 +58,22 @@ formatos atualmente.
 
 Para quem preferir não usar Docker, `standalone/` tem uma porta completa do
 servidor em Go: um único binário estático, sem runtime a instalar, sem
-`npm install`, sem toolchain C. Paridade funcional total com o servidor
-Node desta secção — mesmas rotas, mesmo modelo de cookies/CSRF, mesmo
-WebSocket, mesmo frontend embutido no binário — e **partilha o mesmo
-schema SQLite**, por isso o mesmo `DATA_DIR`/`UPLOADS_DIR` funciona com
-qualquer um dos dois (não correr os dois em simultâneo sobre a mesma
-pasta).
+`npm install`, sem toolchain C, e com o **próprio `cloudflared` embutido**
+(nada para instalar à parte). Paridade funcional total com o servidor Node
+desta secção — mesmas rotas, mesmo modelo de cookies/CSRF, mesmo WebSocket,
+mesmo frontend embutido no binário — e **partilha o mesmo schema SQLite**,
+por isso o mesmo `DATA_DIR`/`UPLOADS_DIR` funciona com qualquer um dos dois
+(não correr os dois em simultâneo sobre a mesma pasta).
 
 ```bash
-cd standalone
-./start.sh   # arranca o servidor + túnel Cloudflare (se tiveres cloudflared) e imprime o link
+./filepad-server-linux-amd64
 ```
 
-Usa as mesmas variáveis de ambiente (o mesmo `.env` da raiz serve). Ver
-`standalone/README.md` para instruções completas (compilar a partir do
-código, cross-compile para as 3 plataformas, etc.).
+Já é só isto — arranca o servidor, liga um túnel Cloudflare automaticamente
+e imprime o link assim que fica pronto. Usa as mesmas variáveis de
+ambiente (o mesmo `.env` da raiz serve). Ver `standalone/README.md` para
+instruções completas (compilar a partir do código, `DISABLE_TUNNEL`,
+`LOG_FILE`, cross-compile, etc.).
 
 ## Pré-requisitos
 

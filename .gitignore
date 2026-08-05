@@ -32,6 +32,11 @@ standalone/filepad-server
 standalone/filepad-server.exe
 standalone/standalone
 
+# Binários do cloudflared descarregados por fetch-cloudflared.sh (grandes,
+# não fazem sentido no repositório — go:embed só precisa deles em tempo de
+# compilação local)
+standalone/assets/
+
 # App desktop: dependências e builds do Electron
 desktop/node_modules/
 desktop/dist/
