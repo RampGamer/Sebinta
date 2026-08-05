@@ -66,17 +66,12 @@ qualquer um dos dois (não correr os dois em simultâneo sobre a mesma
 pasta).
 
 ```bash
-./filepad-server-linux-amd64   # binário pré-compilado, nas Releases do GitHub
+cd standalone
+./start.sh   # arranca o servidor + túnel Cloudflare (se tiveres cloudflared) e imprime o link
 ```
 
-Usa as mesmas variáveis de ambiente (o mesmo `.env` da raiz serve). Para
-expor publicamente sem Docker, corre o `cloudflared` como processo à parte:
-
-```bash
-cloudflared tunnel --url http://localhost:3000
-```
-
-Ver `standalone/README.md` para instruções completas (compilar a partir do
+Usa as mesmas variáveis de ambiente (o mesmo `.env` da raiz serve). Ver
+`standalone/README.md` para instruções completas (compilar a partir do
 código, cross-compile para as 3 plataformas, etc.).
 
 ## Pré-requisitos
