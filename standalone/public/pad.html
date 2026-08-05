@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Filepad</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="pad-name" id="pad-name">/</div>
+  <span class="protected-badge" id="protected-badge" title="Este pad está protegido por password" hidden>🔒 Protegido</span>
+  <div class="status">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">a ligar…</span>
+  </div>
+  <div class="actions">
+    <button id="btn-password" title="Proteger este pad com password">🔒 Password</button>
+    <button id="btn-clear" class="danger" title="Apagar texto e ficheiros deste pad">🗑 Limpar pad</button>
+  </div>
+</header>
+
+<main>
+  <textarea id="editor" placeholder="Escreve aqui… é guardado automaticamente." spellcheck="false"></textarea>
+
+  <section class="files">
+    <h2>Ficheiros</h2>
+    <div class="upload-bar">
+      <button id="btn-choose-file" class="primary">📎 Escolher ficheiro</button>
+      <input type="file" id="file-input" multiple hidden>
+      <span style="color: var(--text-dim); font-size: 0.8rem;">ou arrasta ficheiros para a página, ou cola (Ctrl+V)</span>
+    </div>
+    <div class="upload-progress-list" id="upload-progress-list"></div>
+    <div class="file-grid" id="file-grid"></div>
+  </section>
+</main>
+
+<footer class="hint">Filepad — sem contas, sem histórico. O que apagares aqui, desaparece para sempre.</footer>
+
+<div class="dropzone-overlay" id="dropzone-overlay">Larga aqui para enviar</div>
+
+<!-- Modal: pad protegido por password -->
+<div class="modal-backdrop" id="modal-unlock">
+  <div class="modal">
+    <h3>Este pad está protegido</h3>
+    <p class="hint">Introduz a password para veres o conteúdo.</p>
+    <form id="form-unlock" autocomplete="off">
+      <input type="password" id="unlock-password" placeholder="Password" autofocus required>
+      <p class="error-msg" id="unlock-error"></p>
+      <div class="row">
+        <button type="submit" class="primary">Desbloquear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: definir/remover password do pad -->
+<div class="modal-backdrop" id="modal-password">
+  <div class="modal">
+    <h3>Password deste pad</h3>
+    <p class="hint">Define uma password para este pad, ou deixa em branco para remover a proteção.</p>
+    <form id="form-password" autocomplete="off">
+      <input type="password" id="new-password" placeholder="Nova password (mínimo 4 caracteres)">
+      <p class="error-msg" id="password-error"></p>
+      <div class="row">
+        <button type="button" id="btn-password-cancel">Cancelar</button>
+        <button type="submit" class="primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: confirmar limpeza do pad -->
+<div class="modal-backdrop" id="modal-clear">
+  <div class="modal">
+    <h3>Limpar este pad?</h3>
+    <p class="hint">Isto apaga o texto e TODOS os ficheiros deste pad, para sempre. Não é possível desfazer.</p>
+    <div class="row">
+      <button type="button" id="btn-clear-cancel">Cancelar</button>
+      <button type="button" id="btn-clear-confirm" class="danger">Apagar tudo</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/js/app.js"></script>
+<script src="/js/upload.js"></script>
+</body>
+</html>
