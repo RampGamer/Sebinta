@@ -23,24 +23,36 @@ contextBridge.exposeInMainWorld('filepadDesktop', {
   cleanFile: (name, buffer) => ipcRenderer.invoke('filepad:clean', { name, buffer, cleanEnabled }),
 });
 
+// Mesma paleta de public/css/style.css, para a barra parecer parte da app
+// e não um addon do browser.
+const BAR_CSS = `
+  position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:#161922;color:#e7e9ee;border-bottom:1px solid #2a2f3d;
+  font:12.5px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:7px 12px;display:flex;gap:10px;align-items:center;
+`;
+
 function injectStatusBar() {
   const bar = document.createElement('div');
   bar.id = 'filepad-desktop-bar';
-  bar.style.cssText =
-    'position:fixed;top:0;left:0;right:0;z-index:99999;background:#14181f;color:#e6e6e6;' +
-    'font:12px -apple-system,BlinkMacSystemFont,sans-serif;padding:6px 12px;display:flex;' +
-    'gap:10px;align-items:center;border-bottom:1px solid #2a2f3a;';
-  bar.innerHTML =
-    '<label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none;">' +
-    '<input type="checkbox" id="filepad-desktop-toggle" checked>' +
-    'Limpar metadados (Office/PDF) antes de enviar</label>' +
-    '<span style="width:1px;height:16px;background:#2a2f3a;"></span>' +
-    '<input type="text" id="filepad-desktop-pad-input" placeholder="nome do pad" ' +
-    'style="background:#1c212b;border:1px solid #333a47;color:#e6e6e6;border-radius:4px;' +
-    'padding:3px 8px;font:inherit;width:220px;">' +
-    '<button id="filepad-desktop-pad-go" style="background:#2a2f3a;border:none;color:#e6e6e6;' +
-    'border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer;">Ir</button>' +
-    '<span id="filepad-desktop-status" style="opacity:.75;"></span>';
+  bar.style.cssText = BAR_CSS;
+  bar.innerHTML = `
+    <label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none;">
+      <input type="checkbox" id="filepad-desktop-toggle" checked>
+      Limpar metadados antes de enviar
+    </label>
+    <span style="width:1px;height:16px;background:#2a2f3d;"></span>
+    <input type="text" id="filepad-desktop-pad-input" placeholder="nome do pad" style="
+      background:#1d2130;border:1px solid #2a2f3d;color:#e7e9ee;border-radius:6px;
+      padding:4px 9px;font:inherit;width:220px;">
+    <button id="filepad-desktop-pad-go" style="
+      background:#5b8cff;border:none;color:#0f1115;border-radius:6px;padding:5px 12px;
+      font:inherit;font-weight:600;cursor:pointer;">Ir</button>
+    <span id="filepad-desktop-status" style="opacity:.7;flex:1;"></span>
+    <button id="filepad-desktop-settings" title="Mudar servidor" style="
+      background:transparent;border:1px solid #2a2f3d;color:#9aa0b0;border-radius:6px;
+      width:26px;height:26px;font:14px inherit;cursor:pointer;">⚙</button>
+  `;
   document.documentElement.prepend(bar);
   document.body.style.marginTop = `${bar.offsetHeight}px`;
 
@@ -57,6 +69,10 @@ function injectStatusBar() {
   }
   padGo.addEventListener('click', goToPad);
   padInput.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') goToPad(); });
+
+  bar.querySelector('#filepad-desktop-settings').addEventListener('click', () => {
+    ipcRenderer.send('filepad:open-settings');
+  });
 
   return bar.querySelector('#filepad-desktop-status');
 }
