@@ -2,9 +2,9 @@
 
 /*
  * Processo principal do Electron. Carrega a interface web real de um
- * servidor Filepad (mesma UI, mesma sessão/cookies/WebSocket) numa janela
+ * servidor Sebinta (mesma UI, mesma sessão/cookies/WebSocket) numa janela
  * normal — não há UI própria a reimplementar. A única coisa que este
- * processo acrescenta é o handler IPC 'filepad:clean', chamado pelo
+ * processo acrescenta é o handler IPC 'sebinta:clean', chamado pelo
  * preload.js quando o utilizador envia um ficheiro, para limpar Office/PDF
  * localmente antes do upload seguir para o servidor (ver clean/office.js,
  * clean/pdf.js, clean/detectDlp.js).
@@ -40,7 +40,7 @@ const APP_ICON = path.join(__dirname, 'assets', 'icon.png');
 
 // Sem menu nativo (File/Edit/View) — não fazia sentido numa app que é só
 // uma janela do pad; "Mudar servidor" passou para um botão na barra
-// injetada por preload.js (ver o IPC 'filepad:open-settings' abaixo).
+// injetada por preload.js (ver o IPC 'sebinta:open-settings' abaixo).
 Menu.setApplicationMenu(null);
 
 function createMainWindow(serverUrl) {
@@ -84,19 +84,19 @@ function openSettingsWindow() {
   settingsWindow.on('closed', () => { settingsWindow = null; });
 }
 
-ipcMain.handle('filepad:get-current-server-url', () => loadConfig().serverUrl || '');
+ipcMain.handle('sebinta:get-current-server-url', () => loadConfig().serverUrl || '');
 
-ipcMain.handle('filepad:save-server-url', (event, url) => {
+ipcMain.handle('sebinta:save-server-url', (event, url) => {
   saveConfig({ ...loadConfig(), serverUrl: url });
   if (settingsWindow) settingsWindow.close();
   createMainWindow(url);
 });
 
-ipcMain.on('filepad:open-settings', () => openSettingsWindow());
+ipcMain.on('sebinta:open-settings', () => openSettingsWindow());
 
 // Chamado pelo preload.js da janela principal quando um ficheiro está prestes
 // a ser enviado. Nunca contacta a rede — só lê os bytes recebidos por IPC.
-ipcMain.handle('filepad:clean', async (event, { name, buffer, cleanEnabled }) => {
+ipcMain.handle('sebinta:clean', async (event, { name, buffer, cleanEnabled }) => {
   const ext = path.extname(String(name || '')).toLowerCase();
   const kind = CLEANABLE_EXT[ext];
   if (!kind) {

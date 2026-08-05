@@ -82,7 +82,7 @@ func main() {
 
 	handler := securityHeaders(ensureCsrfMiddleware(cfg, accessLog(mux.ServeHTTP)))
 
-	log.Printf("Filepad (standalone) a correr na porta %s", cfg.Port)
+	log.Printf("Sebinta (standalone) a correr na porta %s", cfg.Port)
 	log.Printf("Password do site: %s", boolLabel(siteAuthEnabled(cfg)))
 	log.Printf("Logs também gravados em %s", cfg.LogPath)
 
@@ -107,7 +107,7 @@ func main() {
 			go func() {
 				select {
 				case u := <-urlCh:
-					printHighlight("Filepad disponível em: %s", u)
+					printHighlight("Sebinta disponível em: %s", u)
 				case <-time.After(30 * time.Second):
 					log.Println("O túnel Cloudflare ainda não respondeu com um URL — ver linhas [cloudflared] acima.")
 				}

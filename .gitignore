@@ -21,15 +21,15 @@ uploads/quarantine/*
 .DS_Store
 *.log
 
-# Binários compilados da CLI (cli/filepad-clean*)
+# Binários compilados da CLI (cli/sebinta-clean*)
 cli/dist/
-cli/filepad-clean
-cli/filepad-clean.exe
+cli/sebinta-clean
+cli/sebinta-clean.exe
 
 # Binários compilados do servidor standalone
 standalone/dist/
-standalone/filepad-server
-standalone/filepad-server.exe
+standalone/sebinta-server
+standalone/sebinta-server.exe
 standalone/standalone
 
 # Binários do cloudflared descarregados por fetch-cloudflared.sh (grandes,

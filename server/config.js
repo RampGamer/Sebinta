@@ -24,7 +24,7 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'production',
 
   dataDir: process.env.DATA_DIR || path.join(ROOT_DIR, 'data'),
-  dbPath: process.env.DB_PATH || path.join(process.env.DATA_DIR || path.join(ROOT_DIR, 'data'), 'filepad.db'),
+  dbPath: process.env.DB_PATH || path.join(process.env.DATA_DIR || path.join(ROOT_DIR, 'data'), 'sebinta.db'),
 
   uploadsDir: process.env.UPLOADS_DIR || path.join(ROOT_DIR, 'uploads'),
   quarantineDir: path.join(process.env.UPLOADS_DIR || path.join(ROOT_DIR, 'uploads'), 'quarantine'),

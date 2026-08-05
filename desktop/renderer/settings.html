@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
 <meta charset="utf-8">
-<title>Filepad — configurar servidor</title>
+<title>Sebinta — configurar servidor</title>
 <style>
   :root { color-scheme: dark; }
   body {
@@ -24,8 +24,8 @@
 </style>
 </head>
 <body>
-  <h1>A que servidor Filepad ligar?</h1>
-  <p>Só precisas de indicar isto uma vez — fica gravado e nos próximos arranques a app abre direto no pad. Podes mudar mais tarde no menu Filepad → "Mudar servidor…".</p>
+  <h1>A que servidor Sebinta ligar?</h1>
+  <p>Só precisas de indicar isto uma vez — fica gravado e nos próximos arranques a app abre direto no pad. Podes mudar mais tarde no botão ⚙ no topo da janela.</p>
   <input id="url" type="text" placeholder="https://notas.oteudominio.com" autofocus>
   <div class="error" id="error"></div>
   <button id="save">Continuar</button>
@@ -35,7 +35,7 @@
     const errorEl = document.getElementById('error');
     const saveBtn = document.getElementById('save');
 
-    window.filepadSettings.getCurrentServerUrl().then((url) => {
+    window.sebintaSettings.getCurrentServerUrl().then((url) => {
       if (url) input.value = url;
     });
 
@@ -51,7 +51,7 @@
         return;
       }
       saveBtn.disabled = true;
-      await window.filepadSettings.saveServerUrl(url.origin);
+      await window.sebintaSettings.saveServerUrl(url.origin);
     }
 
     saveBtn.addEventListener('click', save);

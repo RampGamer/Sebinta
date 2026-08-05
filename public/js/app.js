@@ -5,7 +5,7 @@
  * em tempo real (WebSocket com fallback de polling), listagem de
  * ficheiros e as ações de apagar pad / password do pad. O upload em si
  * (drag&drop, colar, barra de progresso, limpeza de metadados) está em
- * upload.js, que usa o objeto global window.Filepad definido aqui.
+ * upload.js, que usa o objeto global window.Sebinta definido aqui.
  */
 
 (function () {
@@ -71,7 +71,7 @@
   let wsFailCount = 0;
 
   padNameEl.textContent = '/' + padId;
-  document.title = '/' + padId + ' — Filepad';
+  document.title = '/' + padId + ' — Sebinta';
 
   // --- utilidades ---
   function getCookie(name) {
@@ -405,7 +405,7 @@
   }
 
   // Expõe o essencial para upload.js.
-  window.Filepad = {
+  window.Sebinta = {
     padId,
     csrfToken,
     apiUrl,

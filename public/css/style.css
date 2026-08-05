@@ -15,6 +15,11 @@
 }
 
 * { box-sizing: border-box; }
+* { scrollbar-color: #3a4053 var(--bg-panel-2); scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 11px; height: 11px; }
+*::-webkit-scrollbar-track { background: var(--bg-panel-2); }
+*::-webkit-scrollbar-thumb { background: #3a4053; border-radius: 8px; border: 2px solid var(--bg-panel-2); }
+*::-webkit-scrollbar-thumb:hover { background: #4a5268; }
 
 html, body {
   margin: 0;
@@ -360,26 +365,7 @@ footer.hint {
   height: 72px;
   margin: 0 auto 1.2rem;
   border-radius: 18px;
-  background: linear-gradient(160deg, var(--bg-panel-2), var(--bg));
-  border: 1px solid var(--border);
-  position: relative;
-}
-.landing-logo::before {
-  content: "";
-  position: absolute;
-  left: 22px; top: 18px; right: 26px; bottom: 18px;
-  background: var(--text);
-  border-radius: 5px;
-  clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);
-}
-.landing-logo::after {
-  content: "";
-  position: absolute;
-  left: 30px; top: 34px; width: 16px; height: 4px;
-  background: var(--accent);
-  border-radius: 2px;
-  box-shadow: 0 10px 0 var(--accent), 0 20px 0 var(--accent);
-  opacity: 0.9;
+  display: block;
 }
 .landing-card h1 { font-size: 1.6rem; margin: 0 0 0.5rem; }
 .landing-card p.hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 1.2rem; }

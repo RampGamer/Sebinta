@@ -21,7 +21,7 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN groupadd --system filepad && useradd --system --gid filepad --home-dir /app --shell /usr/sbin/nologin filepad
+RUN groupadd --system sebinta && useradd --system --gid sebinta --home-dir /app --shell /usr/sbin/nologin sebinta
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/server ./server
@@ -29,9 +29,9 @@ COPY --from=build /app/public ./public
 COPY package.json ./
 
 RUN mkdir -p /app/data /app/uploads/quarantine /app/uploads/final \
-    && chown -R filepad:filepad /app
+    && chown -R sebinta:sebinta /app
 
-USER filepad
+USER sebinta
 
 ENV NODE_ENV=production \
     PORT=3000 \
