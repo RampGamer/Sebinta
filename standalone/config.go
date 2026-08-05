@@ -52,6 +52,10 @@ type Config struct {
 	UploadsDir    string
 	QuarantineDir string
 	FinalDir      string
+	LogPath       string
+
+	DisableTunnel bool
+	TunnelToken   string
 
 	SitePassword string
 	CookieSecret string
@@ -119,6 +123,11 @@ func loadConfig() *Config {
 		cookieSecret = randomHex(32)
 	}
 
+	logPath := os.Getenv("LOG_FILE")
+	if logPath == "" {
+		logPath = filepath.Join(dataDir, "filepad.log")
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
@@ -135,6 +144,10 @@ func loadConfig() *Config {
 		UploadsDir:    uploadsDir,
 		QuarantineDir: filepath.Join(uploadsDir, "quarantine"),
 		FinalDir:      filepath.Join(uploadsDir, "final"),
+		LogPath:       logPath,
+
+		DisableTunnel: envBool("DISABLE_TUNNEL", false),
+		TunnelToken:   os.Getenv("TUNNEL_TOKEN"),
 
 		SitePassword: os.Getenv("SITE_PASSWORD"),
 		CookieSecret: cookieSecret,

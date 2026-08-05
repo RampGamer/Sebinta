@@ -7,7 +7,11 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 )
 
 //go:embed public
@@ -16,6 +20,12 @@ var embeddedPublic embed.FS
 func main() {
 	cfg := loadConfig()
 	currentConfig = cfg
+
+	logFile, err := setupLogging(cfg)
+	if err != nil {
+		log.Fatalf("não foi possível preparar o ficheiro de logs (%s): %v", cfg.LogPath, err)
+	}
+	defer logFile.Close()
 
 	db := openDB(cfg)
 	defer db.Close()
@@ -64,9 +74,46 @@ func main() {
 
 	log.Printf("Filepad (standalone) a correr na porta %s", cfg.Port)
 	log.Printf("Password do site: %s", boolLabel(siteAuthEnabled(cfg)))
-	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
-		log.Fatal(err)
+	log.Printf("Logs também gravados em %s", cfg.LogPath)
+
+	server := &http.Server{Addr: ":" + cfg.Port, Handler: handler}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	var tunnel *tunnelHandle
+	if cfg.DisableTunnel {
+		log.Println("DISABLE_TUNNEL definido — sem túnel Cloudflare, o servidor só fica acessível localmente.")
+	} else {
+		urlCh := make(chan string, 1)
+		h, err := startTunnel(cfg, urlCh)
+		if err != nil {
+			log.Printf("Aviso: não foi possível arrancar o túnel Cloudflare embutido: %v", err)
+			log.Println("O servidor continua a correr localmente. Define DISABLE_TUNNEL=true para não tentar de novo.")
+		} else {
+			tunnel = h
+			go func() {
+				select {
+				case u := <-urlCh:
+					log.Printf("Filepad disponível em: %s", u)
+				case <-time.After(30 * time.Second):
+					log.Println("O túnel Cloudflare ainda não respondeu com um URL — ver linhas [cloudflared] acima.")
+				}
+			}()
+		}
 	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	log.Println("A encerrar...")
+	tunnel.stop()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = server.Shutdown(shutdownCtx)
 }
 
 func boolLabel(b bool) string {

@@ -1,9 +1,11 @@
 # filepad-server (standalone)
 
 Porta em Go do servidor Filepad (`server/`, Node/Express), para quem quer
-correr **sem Docker** e com o mínimo de dependências possível: um único
-binário estático, sem runtime a instalar, sem `npm install`, sem toolchain
-C (o driver SQLite usado, `modernc.org/sqlite`, é Go puro).
+correr **sem Docker** e sem instalar nada: um único binário estático, sem
+runtime a instalar, sem `npm install`, sem toolchain C (o driver SQLite
+usado, `modernc.org/sqlite`, é Go puro) — e com o **próprio `cloudflared`
+embutido**, para não teres de instalar isso à parte também. Descarregas um
+ficheiro, corres, e já tens o pad acessível publicamente.
 
 Paridade funcional com o servidor Node **no estado atual** (sem limpeza de
 metadados — ver `desktop/` ou `cli/` para isso): mesmas rotas, mesmo modelo
@@ -26,50 +28,50 @@ diretamente:
 ./filepad-server-linux-amd64
 ```
 
-Por omissão arranca na porta 3000, sem password de site, e cria `data/` e
-`uploads/` na pasta onde o corres. Configura com as mesmas variáveis de
-ambiente da versão Docker (o mesmo `.env` da raiz do projeto serve — este
-binário lê um `.env` na pasta onde corre, se existir):
+Isto já é o suficiente: arranca o servidor na porta 3000, liga um túnel
+Cloudflare Quick Tunnel automaticamente (usando o `cloudflared` embutido no
+próprio binário — nada para instalar) e **imprime o link assim que fica
+pronto**:
 
-```bash
-PORT=3000 SITE_PASSWORD=umapassword COOKIE_SECRET=$(openssl rand -hex 32) ./filepad-server-linux-amd64
+```
+Filepad disponível em: https://palavras-aleatorias.trycloudflare.com
 ```
 
-`TUNNEL_TOKEN` não se aplica aqui (é só para o serviço `cloudflared` do
-Docker Compose) — ver secção seguinte para expor publicamente sem Docker.
-
-## Expor publicamente sem Docker (túnel Cloudflare)
-
-```bash
-./start.sh
-```
-
-Arranca o servidor e, se tiveres o
-[`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
-instalado, liga também um túnel Quick Tunnel e **imprime o link assim que
-fica pronto** — sem isto, o URL `*.trycloudflare.com` fica perdido nos logs
-do `cloudflared` e não há forma fácil de saber qual é.
-
-Escolhe automaticamente o binário certo para o teu SO em `dist/` (ou usa
-`./filepad-server` se existir na pasta); para apontar para outro caminho,
-define `FILEPAD_SERVER_BIN=/caminho/para/o/binario`. `PORT` (omissão 3000)
-e `CLOUDFLARED_BIN` também são configuráveis por variável de ambiente. Sem
-`cloudflared` instalado, o script arranca só o servidor local e avisa.
-
-Equivalente manual, se preferires não usar o script:
+Esse link muda a cada arranque (é assim que o Quick Tunnel funciona — sem
+conta Cloudflare, sem domínio fixo). Para um domínio fixo, define
+`TUNNEL_TOKEN` (o mesmo token documentado no README principal para o
+túnel nomeado — este binário lê-o automaticamente, tal como o serviço
+`cloudflared` do Docker Compose). Para correr só localmente, sem túnel
+nenhum:
 
 ```bash
-./filepad-server-linux-amd64 &
-cloudflared tunnel --url http://localhost:3000
+DISABLE_TUNNEL=true ./filepad-server-linux-amd64
 ```
+
+Configura o resto com as mesmas variáveis de ambiente da versão Docker (o
+mesmo `.env` da raiz do projeto serve — este binário lê um `.env` na pasta
+onde corre, se existir):
+
+```bash
+SITE_PASSWORD=umapassword COOKIE_SECRET=$(openssl rand -hex 32) ./filepad-server-linux-amd64
+```
+
+Os logs (incluindo os do `cloudflared`) também ficam gravados em
+`DATA_DIR/filepad.log` (configurável com `LOG_FILE`), para poderes correr
+o binário em background sem perder o histórico.
 
 ## Compilar a partir do código
 
 Requer Go 1.22+ (usa padrões de `net/http.ServeMux` introduzidos nessa
 versão).
 
+`go:embed` precisa dos binários do `cloudflared` presentes em disco em
+tempo de compilação (um por plataforma, ver "Como o cloudflared fica
+embutido" abaixo) — descarrega-os primeiro:
+
 ```bash
 cd standalone
+./fetch-cloudflared.sh   # descarrega para assets/ (não fica no repositório — são ~40-55MB cada)
 go build -o filepad-server .
 ```
 
@@ -84,7 +86,23 @@ CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/filepad-server-windows-
 
 `CGO_ENABLED=0` funciona em todos porque o driver SQLite (`modernc.org/sqlite`)
 é Go puro — sem isto não seria possível fazer cross-compile a partir de uma
-única máquina sem um toolchain C por plataforma.
+única máquina sem um toolchain C por plataforma. `fetch-cloudflared.sh`
+descarrega os 4 binários de uma vez (`assets/cloudflared-linux-amd64`,
+`-darwin-amd64`, `-darwin-arm64`, `-windows-amd64.exe`); cada `go build`
+acima só embute o que corresponde ao seu `GOOS`/`GOARCH` (ver
+`tunnel_<os>_<arch>.go` — um ficheiro por plataforma, com o nome do
+ficheiro a definir automaticamente para que alvo compila, sem precisar de
+`//go:build`).
+
+### Como o cloudflared fica embutido
+
+Não é possível importar o `cloudflared` como biblioteca Go — o seu ponto de
+entrada é `package main` (o próprio Go impede importar isso de outro
+módulo) e as packages internas que fazem o trabalho a sério
+(`supervisor`, `orchestration`, ...) não são uma API pública pensada para
+reutilização externa. A via realista, e a que este projeto usa, é embutir
+o **binário oficial** via `go:embed` e correr o mesmo processo que
+correrias manualmente — só que sem teres de o instalar tu.
 
 ### Se alterares o frontend (`public/`)
 
@@ -102,12 +120,19 @@ rm -rf standalone/public && cp -r public standalone/public
 As mesmas de `server/config.js` / `.env.example` da raiz: `PORT`,
 `DATA_DIR`, `UPLOADS_DIR`, `SITE_PASSWORD`, `COOKIE_SECRET`,
 `COOKIE_SECURE`, `MAX_FILE_SIZE_MB`, `FILE_TTL_DAYS`,
-`MAX_PAD_CONTENT_CHARS`, `TRUST_PROXY`.
+`MAX_PAD_CONTENT_CHARS`, `TRUST_PROXY`, `TUNNEL_TOKEN`. Mais três
+específicas desta versão:
+
+| Variável | Omissão | Descrição |
+|---|---|---|
+| `DISABLE_TUNNEL` | `false` | `true` para não ligar nenhum túnel — só acesso local |
+| `LOG_FILE` | `DATA_DIR/filepad.log` | onde gravar os logs (além do terminal) |
 
 ## Fora de âmbito
 
 - Paridade byte-a-byte de todos os cabeçalhos que o `helmet` (Node)
   aplicava por omissão — replicam-se os que importam para a segurança
   (CSP, `nosniff`, `X-Frame-Options`, HSTS, etc.), não a lista completa.
-- Empacotamento do `cloudflared` junto do binário — corre-se como processo
-  separado (ver acima).
+- Rotação de logs — `LOG_FILE` cresce sem limite; para deployments de longa
+  duração, faz rotação externamente (`logrotate`, etc.) ou apaga/arquiva o
+  ficheiro periodicamente.
