@@ -40,16 +40,28 @@ Docker Compose) — ver secção seguinte para expor publicamente sem Docker.
 
 ## Expor publicamente sem Docker (túnel Cloudflare)
 
-O `cloudflared` também é um binário único — corre-o como um segundo
-processo, sem Docker nenhum envolvido:
+```bash
+./start.sh
+```
+
+Arranca o servidor e, se tiveres o
+[`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+instalado, liga também um túnel Quick Tunnel e **imprime o link assim que
+fica pronto** — sem isto, o URL `*.trycloudflare.com` fica perdido nos logs
+do `cloudflared` e não há forma fácil de saber qual é.
+
+Escolhe automaticamente o binário certo para o teu SO em `dist/` (ou usa
+`./filepad-server` se existir na pasta); para apontar para outro caminho,
+define `FILEPAD_SERVER_BIN=/caminho/para/o/binario`. `PORT` (omissão 3000)
+e `CLOUDFLARED_BIN` também são configuráveis por variável de ambiente. Sem
+`cloudflared` instalado, o script arranca só o servidor local e avisa.
+
+Equivalente manual, se preferires não usar o script:
 
 ```bash
 ./filepad-server-linux-amd64 &
 cloudflared tunnel --url http://localhost:3000
 ```
-
-O link `*.trycloudflare.com` aparece nos logs do `cloudflared`, tal como no
-modo Docker.
 
 ## Compilar a partir do código
 
