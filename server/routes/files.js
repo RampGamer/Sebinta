@@ -42,9 +42,9 @@ function contentDispositionHeader(disposition, filename) {
   return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
-/** Middleware comum: valida ?pad=, garante que existe e que não está trancado. */
+/** Middleware comum: valida ?id=, garante que existe e que não está trancado. */
 async function requireUnlockedPad(req, res, next) {
-  const padId = store.normalizePadId(typeof req.query.pad === 'string' ? req.query.pad : '');
+  const padId = store.normalizePadId(typeof req.query.id === 'string' ? req.query.id : '');
   if (!padId) return res.status(400).json({ error: 'invalid_pad_id' });
   const pad = store.getOrCreatePad(padId);
   if (pad.password_hash && !auth.isPadUnlocked(req, padId, pad)) {
@@ -84,7 +84,7 @@ function fileToJson(f) {
 }
 
 /*
- * POST /api/files?pad=... (multipart/form-data, campo "file")
+ * POST /api/files?id=... (multipart/form-data, campo "file")
  *
  * Fluxo de segurança (requisito 11): o multer grava sempre em
  * uploads/quarantine/. Só depois de cleanInQuarantine() terminar com

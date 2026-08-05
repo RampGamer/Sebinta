@@ -28,7 +28,17 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel run --token ${TUNNEL_TOKEN}
+    # Modo por omissão: "Quick Tunnel" — não precisa de conta Cloudflare nem
+    # de TUNNEL_TOKEN, mas dá um URL aleatório *.trycloudflare.com que muda
+    # sempre que o container reinicia (sem SLA, só para uso pessoal/testes).
+    #
+    # Para um túnel nomeado com URL fixo (recomendado para uso continuado):
+    # 1. Segue os passos do README para obteres um TUNNEL_TOKEN.
+    # 2. Define TUNNEL_TOKEN no .env.
+    # 3. Substitui a linha "command" abaixo por: command: ["tunnel", "run"]
+    #    (o cloudflared lê o token automaticamente da variável de ambiente
+    #    TUNNEL_TOKEN, sem precisar de o passar como argumento).
+    command: ["tunnel", "--url", "http://app:3000"]
     depends_on:
       app:
         condition: service_healthy
