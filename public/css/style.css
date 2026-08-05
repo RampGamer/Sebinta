@@ -105,6 +105,17 @@ header.topbar {
 .status-dot.saving { background: #e0b95a; }
 .status-dot.offline { background: var(--danger); }
 
+.protected-badge {
+  font-size: 0.75rem;
+  color: #e0b95a;
+  background: rgba(224, 185, 90, 0.12);
+  border: 1px solid rgba(224, 185, 90, 0.4);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+}
+.protected-badge[hidden] { display: none; }
+
 .topbar .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 /* --- Main layout --- */

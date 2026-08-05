@@ -27,8 +27,21 @@
   const passwordError = document.getElementById('password-error');
 
   const modalClear = document.getElementById('modal-clear');
+  const protectedBadge = document.getElementById('protected-badge');
+  const btnPassword = document.getElementById('btn-password');
 
   let state = { version: 0, hasPassword: false, locked: false };
+
+  // Torna visível se o pad ficou protegido — quem define a password fica
+  // desbloqueado neste browser (cookie de 7 dias), por isso o badge é o
+  // único sinal visual de que a proteção ficou mesmo ativa.
+  function updateProtectedBadge() {
+    protectedBadge.hidden = !state.hasPassword;
+    btnPassword.textContent = state.hasPassword ? '🔒 Password (ativa)' : '🔒 Password';
+    btnPassword.title = state.hasPassword
+      ? 'Este pad está protegido — clica para alterar ou remover a password'
+      : 'Proteger este pad com password';
+  }
   let lastLocalEditAt = 0;
   let saveTimer = null;
   let ws = null;
@@ -102,6 +115,7 @@
     }
     const data = await res.json();
     state.hasPassword = data.hasPassword;
+    updateProtectedBadge();
 
     if (data.locked) {
       state.locked = true;
@@ -261,8 +275,9 @@
     if (res.ok) {
       const data = await res.json();
       state.hasPassword = data.hasPassword;
+      updateProtectedBadge();
       modalPassword.classList.remove('active');
-      toast(data.hasPassword ? 'Password definida.' : 'Password removida.', 'success');
+      toast(data.hasPassword ? 'Password definida — este pad já está protegido (repara no ícone 🔒 junto ao nome).' : 'Password removida.', 'success');
     } else {
       const data = await res.json().catch(() => ({}));
       passwordError.textContent = data.error === 'invalid_password_length'
