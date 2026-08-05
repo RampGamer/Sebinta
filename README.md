@@ -108,19 +108,27 @@ Todas as variáveis estão documentadas com comentários no próprio `.env.examp
 
 ## 3. Arrancar a aplicação
 
-Um único comando, a partir da pasta do projeto:
+```bash
+./start.sh
+```
+
+Isto constrói a imagem da aplicação, arranca os dois serviços (`app` e
+`cloudflared`), espera que fiquem saudáveis e **imprime o link de acesso**.
+Em modo Quick Tunnel (sem `TUNNEL_TOKEN` no `.env` — o omissão), a
+Cloudflare atribui um domínio aleatório `*.trycloudflare.com` a cada
+arranque, que só aparece nos logs do `cloudflared`; o script vai lá buscá-lo
+por ti, não precisas de procurar. Com um túnel nomeado (`TUNNEL_TOKEN`
+definido), o script avisa-te disso e o link é o domínio fixo que escolheste
+no Cloudflare Zero Trust.
+
+Equivalente manual, se preferires não usar o script:
 
 ```bash
 docker compose up -d
+docker compose logs cloudflared   # o link *.trycloudflare.com aparece aqui
 ```
 
-Isto constrói a imagem da aplicação (instala `exiftool` e `ffmpeg` automaticamente), arranca os dois serviços (`app` e `cloudflared`), e liga o túnel. Passados uns segundos, o pad já deve estar acessível no hostname que configuraste na Cloudflare, ex.:
-
-```
-https://notas.oteudominio.com/o-que-quiseres
-```
-
-Para veres os logs:
+Para veres os logs em direto:
 
 ```bash
 docker compose logs -f
