@@ -1,81 +1,81 @@
 # filepad-server (standalone)
 
-Porta em Go do servidor Filepad (`server/`, Node/Express), para quem quer
-correr **sem Docker** e sem instalar nada: um único binário estático, sem
-runtime a instalar, sem `npm install`, sem toolchain C (o driver SQLite
-usado, `modernc.org/sqlite`, é Go puro) — e com o **próprio `cloudflared`
-embutido**, para não teres de instalar isso à parte também. Descarregas um
-ficheiro, corres, e já tens o pad acessível publicamente.
+A Go port of the Filepad server (`server/`, Node/Express), for anyone who
+wants to run it **without Docker** and without installing anything: a
+single static binary, no runtime to install, no `npm install`, no C
+toolchain (the SQLite driver used, `modernc.org/sqlite`, is pure Go) — and
+with **`cloudflared` itself embedded**, so you don't have to install that
+separately either. Download one file, run it, and your pad is already
+publicly reachable.
 
-Paridade funcional com o servidor Node **no estado atual** (sem limpeza de
-metadados — ver `desktop/` ou `cli/` para isso): mesmas rotas, mesmo modelo
-de cookies/CSRF, mesmo protocolo WebSocket, mesmo frontend (`public/`,
-embutido no binário via `go:embed` — não precisas de mais nenhum ficheiro
-ao lado do executável).
+Functional parity with the Node server **as it stands today** (no
+metadata cleaning — see `desktop/` or `cli/` for that): same routes, same
+cookie/CSRF model, same WebSocket protocol, same frontend (`public/`,
+embedded in the binary via `go:embed` — no extra files needed next to the
+executable).
 
-**Os dois servidores partilham o mesmo schema SQLite** — podes apontar
-`DATA_DIR`/`UPLOADS_DIR` para a mesma pasta usada pela versão Docker e ler
-os mesmos pads/ficheiros sem migração nenhuma (não corras os dois ao mesmo
-tempo sobre a mesma pasta).
+**Both servers share the same SQLite schema** — you can point
+`DATA_DIR`/`UPLOADS_DIR` at the same folder the Docker version uses and
+read the same pads/files with no migration (just don't run both at the
+same time against the same folder).
 
-## Correr já compilado
+## Run a prebuilt binary
 
-Descarrega o binário do teu sistema a partir das
-[Releases](https://github.com/RampGamer/filepad/releases) e corre-o
-diretamente:
+Download the binary for your platform from
+[Releases](https://github.com/RampGamer/filepad/releases) and run it
+directly:
 
 ```bash
 ./filepad-server-linux-amd64
 ```
 
-Isto já é o suficiente: arranca o servidor na porta 3000, liga um túnel
-Cloudflare Quick Tunnel automaticamente (usando o `cloudflared` embutido no
-próprio binário — nada para instalar) e **imprime o link assim que fica
-pronto**:
+That's the whole setup: it starts the server on port 3000, automatically
+opens a Cloudflare Quick Tunnel (using the `cloudflared` embedded in the
+binary — nothing to install), and **prints the link as soon as it's
+ready**:
 
 ```
-Filepad disponível em: https://palavras-aleatorias.trycloudflare.com
+Filepad available at: https://random-words-here.trycloudflare.com
 ```
 
-Esse link muda a cada arranque (é assim que o Quick Tunnel funciona — sem
-conta Cloudflare, sem domínio fixo). Para um domínio fixo, define
-`TUNNEL_TOKEN` (o mesmo token documentado no README principal para o
-túnel nomeado — este binário lê-o automaticamente, tal como o serviço
-`cloudflared` do Docker Compose). Para correr só localmente, sem túnel
-nenhum:
+That link changes on every startup (that's how Quick Tunnel works — no
+Cloudflare account, no fixed domain). For a fixed domain, set
+`TUNNEL_TOKEN` (the same named-tunnel token documented in the root
+README — this binary reads it automatically, same as the Docker Compose
+`cloudflared` service). To run local-only, with no tunnel at all:
 
 ```bash
 DISABLE_TUNNEL=true ./filepad-server-linux-amd64
 ```
 
-Configura o resto com as mesmas variáveis de ambiente da versão Docker (o
-mesmo `.env` da raiz do projeto serve — este binário lê um `.env` na pasta
-onde corre, se existir):
+Configure the rest with the same environment variables as the Docker
+version (the root project's `.env` works fine — this binary reads a
+`.env` file in the folder it runs from, if one exists):
 
 ```bash
-SITE_PASSWORD=umapassword COOKIE_SECRET=$(openssl rand -hex 32) ./filepad-server-linux-amd64
+SITE_PASSWORD=apassword COOKIE_SECRET=$(openssl rand -hex 32) ./filepad-server-linux-amd64
 ```
 
-Os logs (incluindo os do `cloudflared`) também ficam gravados em
-`DATA_DIR/filepad.log` (configurável com `LOG_FILE`), para poderes correr
-o binário em background sem perder o histórico.
+Logs (including `cloudflared`'s own output) are also persisted to
+`DATA_DIR/filepad.log` (configurable with `LOG_FILE`), so you can run the
+binary in the background without losing the history.
 
-## Compilar a partir do código
+## Build from source
 
-Requer Go 1.22+ (usa padrões de `net/http.ServeMux` introduzidos nessa
-versão).
+Requires Go 1.22+ (uses `net/http.ServeMux` patterns introduced in that
+version).
 
-`go:embed` precisa dos binários do `cloudflared` presentes em disco em
-tempo de compilação (um por plataforma, ver "Como o cloudflared fica
-embutido" abaixo) — descarrega-os primeiro:
+`go:embed` needs the `cloudflared` binaries present on disk at build time
+(one per platform — see "How cloudflared gets embedded" below) — fetch
+them first:
 
 ```bash
 cd standalone
-./fetch-cloudflared.sh   # descarrega para assets/ (não fica no repositório — são ~40-55MB cada)
+./fetch-cloudflared.sh   # downloads into assets/ (not checked in — ~40-55MB each)
 go build -o filepad-server .
 ```
 
-### Cross-compile para os 4 sistemas operativos
+### Cross-compile for all 4 platforms
 
 ```bash
 CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -o dist/filepad-server-linux-amd64     .
@@ -84,55 +84,53 @@ CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -o dist/filepad-server-macos-am
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/filepad-server-windows-amd64.exe .
 ```
 
-`CGO_ENABLED=0` funciona em todos porque o driver SQLite (`modernc.org/sqlite`)
-é Go puro — sem isto não seria possível fazer cross-compile a partir de uma
-única máquina sem um toolchain C por plataforma. `fetch-cloudflared.sh`
-descarrega os 4 binários de uma vez (`assets/cloudflared-linux-amd64`,
-`-darwin-amd64`, `-darwin-arm64`, `-windows-amd64.exe`); cada `go build`
-acima só embute o que corresponde ao seu `GOOS`/`GOARCH` (ver
-`tunnel_<os>_<arch>.go` — um ficheiro por plataforma, com o nome do
-ficheiro a definir automaticamente para que alvo compila, sem precisar de
-`//go:build`).
+`CGO_ENABLED=0` works for all of them because the SQLite driver
+(`modernc.org/sqlite`) is pure Go — without that, cross-compiling from a
+single machine wouldn't be possible without a C toolchain per platform.
+`fetch-cloudflared.sh` downloads all 4 binaries at once
+(`assets/cloudflared-linux-amd64`, `-darwin-amd64`, `-darwin-arm64`,
+`-windows-amd64.exe`); each `go build` above only embeds the one matching
+its own `GOOS`/`GOARCH` (see `tunnel_<os>_<arch>.go` — one file per
+platform, whose filename alone determines which build it applies to, no
+`//go:build` needed).
 
-### Como o cloudflared fica embutido
+### How cloudflared gets embedded
 
-Não é possível importar o `cloudflared` como biblioteca Go — o seu ponto de
-entrada é `package main` (o próprio Go impede importar isso de outro
-módulo) e as packages internas que fazem o trabalho a sério
-(`supervisor`, `orchestration`, ...) não são uma API pública pensada para
-reutilização externa. A via realista, e a que este projeto usa, é embutir
-o **binário oficial** via `go:embed` e correr o mesmo processo que
-correrias manualmente — só que sem teres de o instalar tu.
+There's no way to import `cloudflared` as a Go library — its entry point
+is `package main` (Go itself refuses to import that from another module),
+and the internal packages that do the real work (`supervisor`,
+`orchestration`, ...) aren't a public API meant for external reuse. The
+realistic option, and the one this project uses, is to embed the
+**official binary** via `go:embed` and run the exact same process you'd
+run manually — just without having to install it yourself.
 
-### Se alterares o frontend (`public/`)
+### If you change the frontend (`public/`)
 
-Este projeto embute uma **cópia** de `../public/` (`standalone/public/`),
-porque `go:embed` não consegue referenciar ficheiros fora da árvore do
-módulo. Depois de mexer em `public/` na raiz, sincroniza antes de
-recompilar:
+This project embeds a **copy** of `../public/` (`standalone/public/`),
+because `go:embed` can't reference files outside its own module tree.
+After editing `public/` at the repo root, sync it before rebuilding:
 
 ```bash
 rm -rf standalone/public && cp -r public standalone/public
 ```
 
-## Variáveis de ambiente
+## Environment variables
 
-As mesmas de `server/config.js` / `.env.example` da raiz: `PORT`,
-`DATA_DIR`, `UPLOADS_DIR`, `SITE_PASSWORD`, `COOKIE_SECRET`,
-`COOKIE_SECURE`, `MAX_FILE_SIZE_MB`, `FILE_TTL_DAYS`,
-`MAX_PAD_CONTENT_CHARS`, `TRUST_PROXY`, `TUNNEL_TOKEN`. Mais três
-específicas desta versão:
+Same as `server/config.js` / the root `.env.example`: `PORT`, `DATA_DIR`,
+`UPLOADS_DIR`, `SITE_PASSWORD`, `COOKIE_SECRET`, `COOKIE_SECURE`,
+`MAX_FILE_SIZE_MB`, `FILE_TTL_DAYS`, `MAX_PAD_CONTENT_CHARS`,
+`TRUST_PROXY`, `TUNNEL_TOKEN`. Plus three specific to this version:
 
-| Variável | Omissão | Descrição |
+| Variable | Default | Description |
 |---|---|---|
-| `DISABLE_TUNNEL` | `false` | `true` para não ligar nenhum túnel — só acesso local |
-| `LOG_FILE` | `DATA_DIR/filepad.log` | onde gravar os logs (além do terminal) |
+| `DISABLE_TUNNEL` | `false` | `true` to skip the tunnel entirely — local access only |
+| `LOG_FILE` | `DATA_DIR/filepad.log` | where logs are written, in addition to the terminal |
 
-## Fora de âmbito
+## Out of scope
 
-- Paridade byte-a-byte de todos os cabeçalhos que o `helmet` (Node)
-  aplicava por omissão — replicam-se os que importam para a segurança
-  (CSP, `nosniff`, `X-Frame-Options`, HSTS, etc.), não a lista completa.
-- Rotação de logs — `LOG_FILE` cresce sem limite; para deployments de longa
-  duração, faz rotação externamente (`logrotate`, etc.) ou apaga/arquiva o
-  ficheiro periodicamente.
+- Byte-for-byte parity with every header `helmet` (Node) applied by
+  default — only the ones that matter for security are replicated (CSP,
+  `nosniff`, `X-Frame-Options`, HSTS, etc.), not the full list.
+- Log rotation — `LOG_FILE` grows unbounded; for long-running deployments,
+  rotate it externally (`logrotate`, etc.) or periodically archive/clear
+  the file.

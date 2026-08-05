@@ -1,225 +1,184 @@
-# Filepad
+<p align="center">
+  <img src="docs/screenshots/logo.png" width="96" alt="Filepad logo">
+</p>
 
-Aplicação de partilha rápida de texto e ficheiros entre computadores, ao estilo do Dontpad: abres um URL como `https://oteudominio.com/o-que-quiseres` e o "pad" é criado ou aberto automaticamente. Sem contas, sem login, sem base de dados de utilizadores.
+<h1 align="center">Filepad</h1>
 
-Além de texto com gravação automática, cada pad suporta upload de imagens, vídeos e ficheiros de qualquer tipo, com sincronização quase em tempo real entre dispositivos que tenham o mesmo pad aberto.
+<p align="center">
+  A Dontpad-style pad for text and files. Open a URL, start typing, drop a file — that's it.
+</p>
 
-## Índice
+<p align="center">
+  <img src="docs/screenshots/pad.png" width="820" alt="A Filepad pad with notes and three uploaded files">
+</p>
 
-- [Funcionalidades](#funcionalidades)
-- [Limpeza de metadados (app desktop / CLI)](#limpeza-de-metadados-app-desktop--cli)
-- [Correr sem Docker (servidor standalone em Go)](#correr-sem-docker-servidor-standalone-em-go)
-- [Pré-requisitos](#pré-requisitos)
-- [1. Criar o túnel na Cloudflare](#1-criar-o-túnel-na-cloudflare)
-- [2. Configurar o `.env`](#2-configurar-o-env)
-- [3. Arrancar a aplicação](#3-arrancar-a-aplicação)
-- [4. Parar e reiniciar](#4-parar-e-reiniciar)
-- [5. Atualizar](#5-atualizar)
-- [6. Backup e restauro dos dados](#6-backup-e-restauro-dos-dados)
-- [Estrutura do projeto](#estrutura-do-projeto)
-- [Variáveis de ambiente](#variáveis-de-ambiente)
-- [Trade-offs e decisões técnicas](#trade-offs-e-decisões-técnicas)
-- [Resolução de problemas](#resolução-de-problemas)
+No accounts, no login, no user database. Open `https://yourdomain.com/whatever-you-want` and the pad is created — or opened, if it already exists. Anyone with the link can read and write it, same as Dontpad. Autosaved text, drag-and-drop uploads, and near-real-time sync between every device that has the same pad open.
 
-## Funcionalidades
+Runs three different ways depending on what you want: a Docker deployment behind a Cloudflare tunnel, a single dependency-free Go binary, or an Electron desktop client. Pick whichever fits — see [Getting started](#getting-started).
 
-- Criação implícita de pads por URL, com texto gravado automaticamente (debounce, sem botão "guardar").
-- Sincronização quase em tempo real entre dispositivos via WebSocket, com fallback automático para polling curto se o WebSocket não conseguir ligar.
-- Upload por botão, drag & drop, ou colar (Ctrl+V) — imagens e vídeos com pré-visualização inline, restantes ficheiros numa lista com nome, tamanho, download e apagar.
-- Limite de tamanho por ficheiro configurável, barra de progresso, e limpeza automática opcional de ficheiros antigos (TTL).
-- O próprio Filepad **não limpa metadados** — guarda o ficheiro tal como o recebe (ver secção seguinte para quem precisa disso).
-- Password global do site (opcional) e password por pad (opcional).
-- Validação de tipo real por magic bytes, nomes de ficheiro aleatórios em disco, proteção CSRF, rate limiting, cabeçalhos de segurança (CSP restritiva, sem CDNs externos), texto sempre escapado no frontend.
-- Arranque com um único `docker compose up -d`, sem portas expostas na máquina — o acesso é só através de um túnel Cloudflare.
+## Contents
 
-## Limpeza de metadados (app desktop / CLI)
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Getting started](#getting-started)
+  - [Option A — Docker](#option-a--docker-persistent-server-behind-a-cloudflare-tunnel)
+  - [Option B — Standalone binary](#option-b--standalone-binary-no-docker)
+  - [Option C — Desktop app](#option-c--desktop-app)
+- [Metadata cleaning](#metadata-cleaning)
+- [Setting up the Cloudflare tunnel](#setting-up-the-cloudflare-tunnel)
+- [Configuration reference](#configuration-reference)
+- [Managing a Docker deployment](#managing-a-docker-deployment)
+- [Project structure](#project-structure)
+- [Design decisions](#design-decisions)
+- [Troubleshooting](#troubleshooting)
 
-O servidor e a página web do Filepad **não limpam metadados** — um ficheiro
-sobe exatamente como foi recebido. Se precisares de garantir que um
-documento não leva autor, empresa, GPS ou etiquetas de classificação/DLP
-(Titus, Microsoft Purview, etc.) quando o partilhas, faz a limpeza **antes**
-do upload, com uma destas ferramentas:
+## Features
 
-- **App desktop (`desktop/`)** — Electron, mesma interface do browser
-  (abre a página real do teu Filepad), mas intercepta o upload para limpar
-  localmente documentos Office (`.docx`/`.xlsx`/`.pptx`, incluindo Custom
-  XML Parts de DLP) e PDF antes de saírem do computador. A limpeza é
-  opcional, exceto quando deteta tags de DLP num documento Office — nesse
-  caso é sempre aplicada. Ver `desktop/README.md`.
-- **CLI (`cli/`)** — `filepad-clean`, ferramenta em Go sem dependências,
-  para limpar (e opcionalmente enviar) documentos Office a partir da linha
-  de comandos ou de scripts. Ver `cli/README.md`.
+- **Implicit pad creation** — any URL path is a valid pad. Text autosaves as you type (debounced), no save button.
+- **Near-real-time sync** over WebSocket, with automatic fallback to short-interval polling if the socket can't connect (e.g. a proxy that blocks upgrades).
+- **Uploads** by button, drag-and-drop, or paste (Ctrl+V). Images get an inline thumbnail and open full-size in an in-page lightbox before you download; everything else lists with name, size, download, and delete.
+- **Nested pads** — `team/notes` works as a pad name, so you can organize with folders if you want to.
+- Configurable per-file size limit, upload progress bar, and optional automatic cleanup of old files (TTL).
+- Optional site-wide password, and an independent optional password per pad.
+- Real type validation by magic bytes (not by extension or declared MIME type), randomized on-disk filenames, CSRF protection, rate limiting, a restrictive CSP with no external CDNs, and text always escaped on render.
+- The server itself does **not** strip file metadata — see [Metadata cleaning](#metadata-cleaning) if you need that guarantee before a file leaves your machine.
 
-Outros tipos de ficheiro (imagens, vídeo, áudio, Office legado `.doc`/`.xls`/`.ppt`)
-sobem sem qualquer limpeza — nem a app desktop nem o CLI cobrem esses
-formatos atualmente.
+## Screenshots
 
-## Correr sem Docker (servidor standalone em Go)
+|                                                                       |                                                                            |
+| :-------------------------------------------------------------------: | :-------------------------------------------------------------------------: |
+| ![Landing screen — choose a pad name](docs/screenshots/landing.png)  | ![Image lightbox preview](docs/screenshots/lightbox.png)                 |
+| Open the root URL with no pad name and it asks you to pick one, instead of erroring | Click an image thumbnail to preview it full-size before downloading |
 
-Para quem preferir não usar Docker, `standalone/` tem uma porta completa do
-servidor em Go: um único binário estático, sem runtime a instalar, sem
-`npm install`, sem toolchain C, e com o **próprio `cloudflared` embutido**
-(nada para instalar à parte). Paridade funcional total com o servidor Node
-desta secção — mesmas rotas, mesmo modelo de cookies/CSRF, mesmo WebSocket,
-mesmo frontend embutido no binário — e **partilha o mesmo schema SQLite**,
-por isso o mesmo `DATA_DIR`/`UPLOADS_DIR` funciona com qualquer um dos dois
-(não correr os dois em simultâneo sobre a mesma pasta).
+<p align="center">
+  <img src="docs/screenshots/desktop-app.png" width="820" alt="The desktop app, same UI as the browser">
+  <br>
+  <sub>The desktop client — literally the same page as the browser, with a thin toolbar bolted on for local metadata cleaning.</sub>
+</p>
+
+## Getting started
+
+Three independent ways to run Filepad. They all speak the same HTTP API and (for the server variants) the same SQLite schema, so you can mix and match.
+
+### Option A — Docker (persistent server behind a Cloudflare tunnel)
+
+The way to run this as a real, always-on service. Needs Docker and a domain on Cloudflare.
+
+```bash
+cp .env.example .env
+# fill in TUNNEL_TOKEN — see "Setting up the Cloudflare tunnel" below
+./start.sh
+```
+
+`start.sh` builds the image, brings up the `app` and `cloudflared` containers, waits for them to be healthy, and prints the URL your pad is reachable at. Full walkthrough (including the Cloudflare tunnel setup) below.
+
+### Option B — Standalone binary (no Docker)
+
+A single static Go binary with **`cloudflared` embedded** — nothing else to install. Grab it from [Releases](/RampGamer/filepad/releases) and run it:
 
 ```bash
 ./filepad-server-linux-amd64
 ```
 
-Já é só isto — arranca o servidor, liga um túnel Cloudflare automaticamente
-e imprime o link assim que fica pronto. Usa as mesmas variáveis de
-ambiente (o mesmo `.env` da raiz serve). Ver `standalone/README.md` para
-instruções completas (compilar a partir do código, `DISABLE_TUNNEL`,
-`LOG_FILE`, cross-compile, etc.).
+That's the whole setup. It starts the server, opens a Cloudflare Quick Tunnel by itself, and prints the public URL in **bold cyan** as soon as it's ready:
 
-## Pré-requisitos
-
-- Um servidor Linux (ou qualquer máquina) com [Docker](https://docs.docker.com/engine/install/) e o plugin `docker compose` instalados.
-- Uma conta gratuita na [Cloudflare](https://dash.cloudflare.com/sign-up) com um domínio já a usar os nameservers da Cloudflare (podes usar um domínio que já tenhas, ou registar um).
-- Não precisas de abrir portas no router nem de IP público — o túnel da Cloudflare trata disso.
-
-## 1. Criar o túnel na Cloudflare
-
-1. Entra no [dashboard da Cloudflare](https://dash.cloudflare.com) e vai a **Zero Trust** (menu lateral esquerdo; se for a primeira vez, pede para escolheres um nome de equipa — qualquer nome serve, é só para o dashboard).
-2. No menu do Zero Trust, vai a **Networks → Tunnels**.
-3. Clica em **Create a tunnel**.
-4. Escolhe o tipo de conector **Cloudflared** e dá um nome ao túnel (ex.: `filepad`).
-5. No passo **"Install and run a connector"**, a Cloudflare mostra-te um comando com um token comprido (`--token eyJ...`). **Copia só o valor do token** — é isso que vais colocar no `.env` como `TUNNEL_TOKEN`. Não precisas de correr esse comando manualmente; o `docker-compose.yml` já trata de correr o `cloudflared` por ti.
-6. Continua para o passo **"Route traffic"** / **Public Hostname**:
-   - **Subdomain**: o que quiseres (ex.: `notas`), ou deixa vazio para usar o domínio raiz.
-   - **Domain**: escolhe o teu domínio já ligado à Cloudflare.
-   - **Service**: tipo `HTTP`, endereço `app:3000` — este é o nome do serviço Docker (`app`) definido no `docker-compose.yml`, resolvido automaticamente pela rede interna do Docker. **Não uses `localhost` nem um IP** — o `cloudflared` corre dentro da rede Docker, não na tua máquina.
-7. Guarda. Ao fim de alguns segundos o hostname público (ex.: `https://notas.oteudominio.com`) já deve estar associado ao túnel.
-
-O HTTPS é tratado inteiramente pela Cloudflare — a tua aplicação nunca precisa de certificados nem de portas abertas.
-
-## 2. Configurar o `.env`
-
-```bash
-cp .env.example .env
+```
+2026/08/05 23:28:13  Filepad available at: https://random-words-here.trycloudflare.com
 ```
 
-Edita o `.env` e preenche pelo menos o `TUNNEL_TOKEN` obtido acima:
+Set `DISABLE_TUNNEL=true` to stay local-only, or `TUNNEL_TOKEN` to use a fixed domain instead of the random one. Full details, including how to build it yourself and cross-compile for other platforms, in [`standalone/README.md`](standalone/README.md).
 
-```dotenv
-TUNNEL_TOKEN=eyJhIjoixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...
+### Option C — Desktop app
 
-# Opcional: protege todo o site com uma password
-SITE_PASSWORD=uma-password-forte-aqui
+An Electron client that opens your Filepad server in a normal window — same interface as the browser — and additionally intercepts uploads to clean Office/PDF metadata locally before they leave your computer (see [Metadata cleaning](#metadata-cleaning)). Available for Linux (AppImage), Windows (portable `.exe`, no installer), and macOS (Intel + Apple Silicon) from [Releases](/RampGamer/filepad/releases).
 
-# Opcional: limite de tamanho por ficheiro (megabytes)
-MAX_FILE_SIZE_MB=500
+The first launch asks for your server's URL and remembers it — after that, it's just open and use. Details in [`desktop/README.md`](desktop/README.md).
 
-# Opcional: apaga ficheiros com mais de N dias automaticamente
-FILE_TTL_DAYS=
+## Metadata cleaning
 
-# Recomendado em produção: fixa este valor para as sessões sobreviverem a restarts
-COOKIE_SECRET=$(openssl rand -hex 32)
-```
+The server and the web page **do not strip metadata** — a file is stored exactly as it was received. If you need to make sure a document doesn't carry an author name, company, GPS coordinates, or a DLP classification tag (Titus, Microsoft Purview, etc.) when you share it, clean it **before** upload with one of these:
 
-Gera um `COOKIE_SECRET` fixo com:
+- **Desktop app** (`desktop/`) — cleans Office documents (`.docx`/`.xlsx`/`.pptx`, including Custom XML DLP parts) and PDFs locally before upload. Cleaning is optional, except when DLP tags are detected in an Office document — then it's always applied, regardless of the toggle. See [`desktop/README.md`](desktop/README.md).
+- **CLI** (`cli/`) — `filepad-clean`, a dependency-free Go tool to clean (and optionally upload) Office documents from a terminal or a script. See [`cli/README.md`](cli/README.md).
+
+Other file types (images, video, audio, legacy Office `.doc`/`.xls`/`.ppt`) upload without any cleaning — neither tool covers those formats today.
+
+## Setting up the Cloudflare tunnel
+
+Only needed if you want a fixed domain (Option A, or Option B/C with `TUNNEL_TOKEN`). Skip this entirely if a random `*.trycloudflare.com` link is fine for your use case — the standalone binary and `docker-compose.yml`'s default already do that with zero configuration.
+
+1. Open the [Cloudflare dashboard](https://dash.cloudflare.com) → **Zero Trust** (first time in, it'll ask you to pick a team name — anything works, it's just a dashboard label).
+2. **Networks → Tunnels → Create a tunnel.**
+3. Connector type **Cloudflared**, give the tunnel a name (e.g. `filepad`).
+4. On **"Install and run a connector"**, Cloudflare shows a command with a long `--token eyJ...` value. **Copy just the token** — that's what goes into `.env` as `TUNNEL_TOKEN`. You don't need to run that command yourself; `docker-compose.yml` (or the standalone binary) already runs `cloudflared` for you.
+5. Continue to **Route traffic / Public Hostname**:
+   - **Subdomain**: whatever you want (e.g. `notes`), or leave empty to use the root domain.
+   - **Domain**: pick the domain you already have on Cloudflare.
+   - **Service**: type `HTTP`, address:
+     - Docker: `app:3000` — the Docker service name, resolved over the internal Docker network. **Don't use `localhost` or an IP** — `cloudflared` runs inside the Docker network, not on your machine.
+     - Standalone binary: `localhost:3000` (or whatever `PORT` you set).
+6. Save. Within a few seconds the public hostname (e.g. `https://notes.yourdomain.com`) is associated with the tunnel.
+
+HTTPS is handled entirely by Cloudflare — your app never needs certificates or open ports.
+
+For Docker, after getting the token: `cp .env.example .env`, fill in `TUNNEL_TOKEN`, and switch the `command` line for the `cloudflared` service in `docker-compose.yml` from the Quick Tunnel default to `["tunnel", "run"]` (already commented in the file, right above that line).
+
+## Configuration reference
+
+Same environment variables across Docker and the standalone binary (`.env` in the project root, or a `.env` file next to the standalone binary).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `TUNNEL_TOKEN` | For a fixed domain | — | Cloudflare named-tunnel token. Without it, both Docker and the standalone binary fall back to a random Quick Tunnel link. |
+| `SITE_PASSWORD` | No | empty (open site) | Site-wide password |
+| `MAX_FILE_SIZE_MB` | No | `500` | Per-file size limit |
+| `FILE_TTL_DAYS` | No | empty (disabled) | Auto-delete files older than N days |
+| `COOKIE_SECRET` | Recommended | random on startup | Signs session cookies — set a fixed value so sessions survive restarts |
+| `COOKIE_SECURE` | No | `true` | Only turn off for local HTTP testing without a tunnel |
+| `DISABLE_TUNNEL` | No (standalone only) | `false` | `true` to run local-only, no Cloudflare tunnel at all |
+| `LOG_FILE` | No (standalone only) | `DATA_DIR/filepad.log` | Where logs are persisted, in addition to stdout |
+
+## Managing a Docker deployment
 
 ```bash
-openssl rand -hex 32
-```
+# Stop (keeps the data volumes)
+docker compose down
 
-Todas as variáveis estão documentadas com comentários no próprio `.env.example`.
-
-## 3. Arrancar a aplicação
-
-```bash
-./start.sh
-```
-
-Isto constrói a imagem da aplicação, arranca os dois serviços (`app` e
-`cloudflared`), espera que fiquem saudáveis e **imprime o link de acesso**.
-Em modo Quick Tunnel (sem `TUNNEL_TOKEN` no `.env` — o omissão), a
-Cloudflare atribui um domínio aleatório `*.trycloudflare.com` a cada
-arranque, que só aparece nos logs do `cloudflared`; o script vai lá buscá-lo
-por ti, não precisas de procurar. Com um túnel nomeado (`TUNNEL_TOKEN`
-definido), o script avisa-te disso e o link é o domínio fixo que escolheste
-no Cloudflare Zero Trust.
-
-Equivalente manual, se preferires não usar o script:
-
-```bash
+# Restart
 docker compose up -d
-docker compose logs cloudflared   # o link *.trycloudflare.com aparece aqui
-```
 
-Para veres os logs em direto:
+# Restart just one service
+docker compose restart app
 
-```bash
+# Live logs
 docker compose logs -f
-```
 
-Para confirmares que a app está saudável:
-
-```bash
+# Health check — should show "healthy" for the app service
 docker compose ps
 ```
 
-(deve aparecer `healthy` na coluna de estado do serviço `app`).
-
-## 4. Parar e reiniciar
+**Updating:**
 
 ```bash
-# Parar (mantém os volumes de dados)
-docker compose down
-
-# Reiniciar
+git pull
+docker compose build app
 docker compose up -d
-
-# Reiniciar só um serviço
-docker compose restart app
 ```
 
-## 5. Atualizar
+To bump just the `cloudflared` image: `docker compose pull cloudflared && docker compose up -d cloudflared`.
 
-Quando fizeres alterações ao código, ou quiseres atualizar as imagens base:
-
-```bash
-git pull                    # se estiveres a gerir o projeto com git
-docker compose build app    # reconstrói a imagem da aplicação
-docker compose up -d        # recria os containers com a nova imagem
-```
-
-Para atualizar só a imagem do `cloudflared` para a mais recente:
+**Backup and restore** — data lives in two named Docker volumes, `filepad_data` (SQLite database) and `filepad_uploads` (files). Confirm the exact names with `docker volume ls | grep filepad` (they're prefixed with the project folder name).
 
 ```bash
-docker compose pull cloudflared
-docker compose up -d cloudflared
-```
-
-Os dados (base de dados SQLite e ficheiros enviados) estão em volumes Docker nomeados e sobrevivem a estes comandos.
-
-## 6. Backup e restauro dos dados
-
-Os dados vivem em dois volumes Docker: `filepad_data` (base de dados SQLite) e `filepad_uploads` (ficheiros). O nome exato dos volumes tem o prefixo do projeto — confirma com:
-
-```bash
-docker volume ls | grep filepad
-```
-
-### Backup
-
-```bash
+# Backup
 mkdir -p backups
 docker run --rm \
   -v filepad_filepad_data:/data \
   -v filepad_filepad_uploads:/uploads \
   -v "$(pwd)/backups":/backup \
   alpine tar czf /backup/filepad-backup-$(date +%Y%m%d-%H%M%S).tar.gz -C / data uploads
-```
 
-(ajusta `filepad_filepad_data` / `filepad_filepad_uploads` para os nomes reais devolvidos por `docker volume ls`, que dependem do nome da pasta do projeto).
-
-### Restauro
-
-```bash
+# Restore
 docker compose down
 docker run --rm \
   -v filepad_filepad_data:/data \
@@ -229,68 +188,47 @@ docker run --rm \
 docker compose up -d
 ```
 
-## Estrutura do projeto
+## Project structure
 
 ```
 filepad/
-├── docker-compose.yml       # serviços app + cloudflared
-├── Dockerfile                # imagem da app (Node)
+├── docker-compose.yml   # app + cloudflared services
+├── Dockerfile             # Node app image
+├── start.sh                # docker compose up + prints the tunnel URL
 ├── .env.example
-├── package.json
-├── server/
-│   ├── index.js               # bootstrap Express + HTTP + WebSocket
-│   ├── config.js               # leitura de variáveis de ambiente
-│   ├── db.js                    # schema SQLite (better-sqlite3)
-│   ├── auth.js                   # password do site, password de pad, CSRF
-│   ├── ws.js                      # sincronização em tempo real
-│   ├── middleware/
-│   │   ├── security.js             # cabeçalhos (helmet/CSP)
-│   │   └── rateLimit.js             # limitadores de pedidos
-│   ├── routes/
-│   │   ├── auth.js                   # /api/auth/*
-│   │   ├── pad.js                     # /api/pad/*
-│   │   └── files.js                    # /api/files/* (upload/download/preview)
-│   └── services/
-│       ├── padStore.js                 # acesso a pads/ficheiros na BD
-│       ├── storage.js                   # caminhos seguros em disco
-│       ├── fileType.js                   # deteção por magic bytes
-│       └── cleanup.js                     # tarefa agendada (TTL)
-├── public/
+├── server/                  # Node/Express server (the Docker deployment)
+│   ├── index.js               # bootstrap: HTTP + WebSocket
+│   ├── auth.js                  # site password, pad password, CSRF
+│   ├── ws.js                      # real-time sync
+│   ├── middleware/                 # security headers, rate limiting
+│   ├── routes/                      # /api/auth, /api/pad, /api/files
+│   └── services/                     # DB access, storage, magic-byte sniffing, TTL cleanup
+├── public/                  # frontend — shared by server/ and standalone/
 │   ├── pad.html / login.html
 │   ├── css/style.css
-│   └── js/
-│       ├── app.js                        # lógica do pad (texto, WS, ficheiros)
-│       └── upload.js                      # drag&drop, colar, progresso, sem limpeza
-├── cli/                       # filepad-clean: CLI Go, limpa Office localmente (ver cli/README.md)
-├── desktop/                    # app Electron: limpa Office/PDF localmente antes do upload (ver desktop/README.md)
-└── standalone/                  # servidor em Go, sem Docker, binário único (ver standalone/README.md)
+│   └── js/app.js, upload.js
+├── standalone/               # server rewritten in Go — single binary, no Docker
+├── desktop/                   # Electron client with local metadata cleaning
+└── cli/                         # filepad-clean: Go CLI for scripted uploads
 ```
 
-## Variáveis de ambiente
+Each of `standalone/`, `desktop/`, and `cli/` has its own `README.md` with build instructions and details specific to that component.
 
-| Variável | Obrigatória | Default | Descrição |
-|---|---|---|---|
-| `TUNNEL_TOKEN` | Sim (para o `cloudflared`) | — | Token do túnel Cloudflare |
-| `SITE_PASSWORD` | Não | vazia (site aberto) | Password global do site |
-| `MAX_FILE_SIZE_MB` | Não | `500` | Limite de tamanho por ficheiro |
-| `FILE_TTL_DAYS` | Não | vazio (desativado) | Apaga ficheiros com mais de N dias |
-| `COOKIE_SECRET` | Recomendada | gerado aleatoriamente no arranque | Assina os cookies de sessão |
-| `COOKIE_SECURE` | Não | `true` | Só desativar em testes locais sem HTTPS |
+## Design decisions
 
-## Trade-offs e decisões técnicas
+- **Pad IDs can contain `/`, so file/password endpoints use `?id=`, not a path segment.** Any URL path (slashes included) is a valid pad, so the files/password endpoints take `?id=` (and the WebSocket takes `?pad=`) instead of embedding it in their own path — avoids ambiguity between "a pad named `notes/files`" and "the files endpoint for the pad `notes`".
+- **No metadata cleaning on the server or the web page.** Filepad stores files as received. Anyone who needs that guarantee does the cleaning before upload, with the [desktop app or CLI](#metadata-cleaning) — keeps the server simple and free of heavy dependencies (`exiftool`/`ffmpeg`).
+- **Cookie-based sessions, no user database.** Keeps the project simple — no session table, nothing to expire. The cost: changing `COOKIE_SECRET` (or not fixing it, so a restart generates a new one) invalidates every session, including unlocked pad passwords. Set a fixed `COOKIE_SECRET` to avoid that.
+- **Per-pad password lives in a signed cookie, not a server-side session.** Same reasoning — no session table. "Unlocking" a pad is local to the browser that unlocked it.
+- **The standalone Go server embeds the official `cloudflared` binary rather than linking it as a library.** `cloudflared`'s entry point is `package main`, which Go can't import, and its internal packages (`supervisor`, `orchestration`, ...) aren't a stable public API meant for external reuse. Embedding the real binary via `go:embed` and running it as a subprocess gets the same "nothing to install" result without depending on undocumented internals.
 
-- **Pad IDs com `/` e endpoints de ficheiros/password**: como qualquer caminho de URL (incluindo com barras) é um pad válido, os endpoints de ficheiros e de password usam `?id=` (e o WebSocket usa `?pad=`) em vez de o incluírem no próprio caminho do URL — evita ambiguidade entre "um pad chamado `notas/files`" e "o endpoint de ficheiros do pad `notas`".
-- **Sem limpeza de metadados no servidor nem na página web**: o Filepad guarda ficheiros tal como os recebe. Quem precisar de garantir que um documento não leva metadados sensíveis faz essa limpeza antes do upload, com a [app desktop](#limpeza-de-metadados-app-desktop--cli) ou o CLI — mantém o servidor simples e sem dependências pesadas (`exiftool`/`ffmpeg`).
-- **Sessões por cookie, sem base de dados de utilizadores**: mantém o projeto simples (sem tabela de sessões, sem limpeza de sessões expiradas). Custo: se mudares o `COOKIE_SECRET` (ou não o fixares e o container reiniciar), todas as sessões — incluindo passwords de pads desbloqueados — são invalidadas. Definir um `COOKIE_SECRET` fixo evita isto.
-- **Password por pad guardada em cookie assinado, não em sessão no servidor**: mantém-se sem tabela de sessões; o "desbloqueio" de um pad é local ao browser que o desbloqueou, tal como no site em geral.
+## Troubleshooting
 
-## Resolução de problemas
+**The tunnel shows "inactive" on the Cloudflare dashboard.**
+Check that `TUNNEL_TOKEN` in `.env` is correct and has no stray whitespace, then `docker compose up -d cloudflared` and `docker compose logs cloudflared`.
 
-**O túnel aparece "inactive" no dashboard da Cloudflare.**
-Confirma que `TUNNEL_TOKEN` no `.env` está correto e sem espaços a mais, depois `docker compose up -d cloudflared` e `docker compose logs cloudflared`.
+**The app never becomes "healthy" (Docker).**
+`docker compose logs app` — the healthcheck runs `curl http://127.0.0.1:3000/health` inside the container; a failure usually means a startup error (check the logs) or no disk space left for the database.
 
-**A app não fica "healthy".**
-`docker compose logs app` — o healthcheck usa `curl http://127.0.0.1:3000/health` dentro do próprio container; se falhar, normalmente é um erro no arranque do Node (ver os logs) ou falta de espaço em disco para a base de dados.
-
-**Quero desativar a password do site outra vez.**
-Apaga ou deixa vazio o `SITE_PASSWORD` no `.env` e faz `docker compose up -d app`.
+**I want to turn the site password back off.**
+Clear `SITE_PASSWORD` in `.env` and run `docker compose up -d app` (or restart the standalone binary with the variable unset).
