@@ -6,7 +6,7 @@ const config = require('../config');
 // Segmentos reservados: nunca podem ser o pad (colidem com rotas da app).
 const RESERVED_TOP_SEGMENTS = new Set([
   'api', 'ws', 'login', 'logout', 'health', 'css', 'js', 'vendor',
-  'favicon.ico', 'robots.txt', 'uploads',
+  'favicon.ico', 'robots.txt', 'uploads', 'metadata-check.html',
 ]);
 
 const PAD_ID_RE = /^[a-zA-Z0-9._~-]+(\/[a-zA-Z0-9._~-]+)*$/;

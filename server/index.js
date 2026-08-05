@@ -47,6 +47,13 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
 });
 
+// Ferramenta de diagnóstico de metadados (só leitura) — precisa de estar
+// registada antes do catch-all de pads, senão "metadata-check.html" seria
+// interpretado como o nome de um pad.
+app.get('/metadata-check.html', auth.siteAuthPageGate, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'metadata-check.html'));
+});
+
 // --- API ---
 app.use('/api/auth', authRoutes);
 app.use('/api/pad', auth.siteAuthApiGate, padRoutes);
