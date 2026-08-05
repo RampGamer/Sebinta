@@ -41,7 +41,7 @@ Este é o requisito mais delicado do projeto, por isso vale a pena explicar o de
 |---|---|
 | Imagens JPEG/PNG/WebP | Reencode via `OffscreenCanvas` num Web Worker — o canvas só lê pixels, nunca preserva EXIF/GPS |
 | PDF | `pdf-lib`: limpa o dicionário Info e remove a stream XMP do catálogo; a gravação reescreve o ficheiro de raiz, descartando "incremental updates" antigos |
-| Office OOXML (`.docx`/`.xlsx`/`.pptx`) | `fflate` (ZIP): substitui `docProps/core.xml` e `docProps/app.xml` por versões vazias, remove `docProps/custom.xml` e a thumbnail |
+| Office OOXML (`.docx`/`.xlsx`/`.pptx`) | `fflate` (ZIP): substitui `docProps/core.xml` e `docProps/app.xml` por versões vazias, remove `docProps/custom.xml`, a thumbnail e **toda a pasta `customXml/`** (Custom XML Parts — é ali que ferramentas de classificação/DLP empresariais como Titus ou Microsoft Purview Information Protection guardam etiquetas como `TitusGUID`/`CLASSIFICATION`, fora das propriedades habituais do Office) |
 
 Se a limpeza destes tipos falhar no browser (ex.: PDF encriptado, ficheiro corrompido), **o upload é bloqueado ali mesmo** — o ficheiro original nunca chega a ser enviado.
 
@@ -51,7 +51,7 @@ Vídeo, áudio, Office legado (`.doc`/`.xls`/`.ppt`) e todos os outros tipos **n
 
 1. O ficheiro é gravado primeiro numa pasta de **quarentena**, fora do armazenamento definitivo.
 2. É identificado por magic bytes (não pela extensão).
-3. É limpo com `exiftool -all=` (imagens, PDF, documentos) ou `ffmpeg -map_metadata -1` (vídeo/áudio, com cópia de stream sempre que possível).
+3. É limpo com `exiftool -all=` (imagens, PDF, Office legado), `ffmpeg -map_metadata -1` (vídeo/áudio, com cópia de stream sempre que possível), ou o mesmo limpador Node/`fflate` da camada 1 (Office OOXML — ver nota abaixo).
 4. Só se a limpeza terminar com sucesso é que o ficheiro é movido para o armazenamento definitivo e passa a existir na base de dados.
 5. Se falhar, o ficheiro de quarentena é apagado e o utilizador vê um erro claro — nunca fica um caminho de código onde um ficheiro por limpar se torne acessível.
 
@@ -261,6 +261,7 @@ filepad/
 - **Limpeza de imagem no browser via re-encode**: garante remoção total de EXIF (incluindo GPS), mas é sempre uma reompressão (para JPEG/WebP, com qualidade 0.92) — não é bit-a-bit idêntica ao original. É a única forma fiável de garantir que os metadados não saem do dispositivo de origem.
 - **Vídeo/áudio e Office legado sem limpeza no browser**: reescrever contentores de vídeo ou o formato binário OLE2 (`.doc`/`.xls`/`.ppt`) em JavaScript do browser não é viável com bibliotecas leves — ficam só com a camada de quarentena no servidor (`ffmpeg`/`exiftool`), que continua a garantir que nada fica acessível sem ser limpo.
 - **`ffmpeg -c copy` com fallback para reencode**: tenta sempre remuxar sem recodificar (rápido, sem perda). Se o contentor recusar, faz reencode completo como última tentativa — mais lento, mas garante que a limpeza nunca falha por incompatibilidade evitável.
+- **Limpeza de Office OOXML na camada 2 não usa exiftool**: a versão de `exiftool` disponível nos repositórios do Debian (a que o `Dockerfile` instala) não sabe **escrever** `.docx`/`.xlsx`/`.pptx` (confirmado em testes: `Writing of DOCX files is not yet supported`) — sabe ler estas propriedades (precisa do módulo Perl `libarchive-zip-perl`, também instalado), mas não as consegue apagar. Por isso a camada 2 usa, para este tipo de ficheiro, o mesmo limpador Node/`fflate` da camada 1 (`server/services/officeClean.js`, espelhando `public/js/metadata/office-clean.js`), em vez de delegar no exiftool como acontece para imagens/PDF/Office legado. Continua a ser uma camada obrigatória e bloqueante: se falhar, o upload é rejeitado.
 - **Sessões por cookie, sem base de dados de utilizadores**: mantém o projeto simples (sem tabela de sessões, sem limpeza de sessões expiradas). Custo: se mudares o `COOKIE_SECRET` (ou não o fixares e o container reiniciar), todas as sessões — incluindo passwords de pads desbloqueados — são invalidadas. Definir um `COOKIE_SECRET` fixo evita isto.
 - **Password por pad guardada em cookie assinado, não em sessão no servidor**: mantém-se sem tabela de sessões; o "desbloqueio" de um pad é local ao browser que o desbloqueou, tal como no site em geral.
 
