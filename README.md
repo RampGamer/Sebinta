@@ -257,7 +257,7 @@ filepad/
 
 ## Trade-offs e decisões técnicas
 
-- **Pad IDs com `/` e endpoints de ficheiros/password**: como qualquer caminho de URL (incluindo com barras) é um pad válido, os endpoints de ficheiros e de password usam `?id=`/`?pad=` em vez de o incluírem no próprio caminho do URL — evita ambiguidade entre "um pad chamado `notas/files`" e "o endpoint de ficheiros do pad `notas`".
+- **Pad IDs com `/` e endpoints de ficheiros/password**: como qualquer caminho de URL (incluindo com barras) é um pad válido, os endpoints de ficheiros e de password usam `?id=` (e o WebSocket usa `?pad=`) em vez de o incluírem no próprio caminho do URL — evita ambiguidade entre "um pad chamado `notas/files`" e "o endpoint de ficheiros do pad `notas`".
 - **Limpeza de imagem no browser via re-encode**: garante remoção total de EXIF (incluindo GPS), mas é sempre uma reompressão (para JPEG/WebP, com qualidade 0.92) — não é bit-a-bit idêntica ao original. É a única forma fiável de garantir que os metadados não saem do dispositivo de origem.
 - **Vídeo/áudio e Office legado sem limpeza no browser**: reescrever contentores de vídeo ou o formato binário OLE2 (`.doc`/`.xls`/`.ppt`) em JavaScript do browser não é viável com bibliotecas leves — ficam só com a camada de quarentena no servidor (`ffmpeg`/`exiftool`), que continua a garantir que nada fica acessível sem ser limpo.
 - **`ffmpeg -c copy` com fallback para reencode**: tenta sempre remuxar sem recodificar (rápido, sem perda). Se o contentor recusar, faz reencode completo como última tentativa — mais lento, mas garante que a limpeza nunca falha por incompatibilidade evitável.
