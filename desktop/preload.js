@@ -10,7 +10,9 @@
  * 2. Depois de app.js/upload.js correrem (DOMContentLoaded), injeta um
  *    pequeno <script> que liga window.Filepad.setPreUploadHook (definido em
  *    public/js/upload.js) a essa API, e uma barra de estado no topo da
- *    janela com o toggle "limpar metadados".
+ *    janela com o toggle "limpar metadados" e uma caixa "ir para pad" (a
+ *    janela principal só carrega um URL fixo — sem isto não havia forma de
+ *    mudar de pad sem passar pelo menu "Mudar servidor…").
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -32,12 +34,29 @@ function injectStatusBar() {
     '<label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none;">' +
     '<input type="checkbox" id="filepad-desktop-toggle" checked>' +
     'Limpar metadados (Office/PDF) antes de enviar</label>' +
+    '<span style="width:1px;height:16px;background:#2a2f3a;"></span>' +
+    '<input type="text" id="filepad-desktop-pad-input" placeholder="nome do pad" ' +
+    'style="background:#1c212b;border:1px solid #333a47;color:#e6e6e6;border-radius:4px;' +
+    'padding:3px 8px;font:inherit;width:220px;">' +
+    '<button id="filepad-desktop-pad-go" style="background:#2a2f3a;border:none;color:#e6e6e6;' +
+    'border-radius:4px;padding:4px 10px;font:inherit;cursor:pointer;">Ir</button>' +
     '<span id="filepad-desktop-status" style="opacity:.75;"></span>';
   document.documentElement.prepend(bar);
   document.body.style.marginTop = `${bar.offsetHeight}px`;
 
   const toggle = bar.querySelector('#filepad-desktop-toggle');
   toggle.addEventListener('change', () => { cleanEnabled = toggle.checked; });
+
+  const padInput = bar.querySelector('#filepad-desktop-pad-input');
+  const padGo = bar.querySelector('#filepad-desktop-pad-go');
+  padInput.value = decodeURIComponent(location.pathname.replace(/^\/+/, ''));
+  function goToPad() {
+    const raw = padInput.value.trim();
+    if (!raw) return;
+    location.href = new URL(raw, `${location.origin}/`).href;
+  }
+  padGo.addEventListener('click', goToPad);
+  padInput.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') goToPad(); });
 
   return bar.querySelector('#filepad-desktop-status');
 }
