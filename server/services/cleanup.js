@@ -18,10 +18,10 @@ const CHECK_INTERVAL_MS = 60 * 60 * 1000; // verifica a cada hora
 
 /*
  * Nada deve ficar na quarentena de forma permanente: se o processo morrer a
- * meio da limpeza de um ficheiro (ex.: OOM durante um ffmpeg pesado), o
- * resto fica lá. No arranque, varre-se a quarentena e apaga-se tudo o que
- * já lá está há mais de 1 hora (nunca associado a nenhum pad, é sempre
- * seguro apagar).
+ * meio de um upload (entre o multer gravar e o ficheiro ser movido para
+ * uploads/final/), o resto fica lá. No arranque, varre-se a quarentena e
+ * apaga-se tudo o que já lá está há mais de 1 hora (nunca associado a
+ * nenhum pad, é sempre seguro apagar).
  */
 function sweepQuarantine() {
   let entries;

@@ -12,7 +12,6 @@ const auth = require('../auth');
 const store = require('../services/padStore');
 const storage = require('../services/storage');
 const fileType = require('../services/fileType');
-const quarantine = require('../services/quarantine');
 const { uploadLimiter } = require('../middleware/rateLimit');
 const ws = require('../ws');
 
@@ -86,11 +85,11 @@ function fileToJson(f) {
 /*
  * POST /api/files?id=... (multipart/form-data, campo "file")
  *
- * Fluxo de segurança (requisito 11): o multer grava sempre em
- * uploads/quarantine/. Só depois de cleanInQuarantine() terminar com
- * sucesso é que o ficheiro é movido para uploads/final/ e passa a existir
- * na base de dados. Se falhar em qualquer ponto, o ficheiro de quarentena é
- * apagado e nunca chega a ficar acessível.
+ * Sem limpeza de metadados no servidor — quem quiser garantir isso usa a
+ * app desktop (desktop/) ou o CLI (cli/) antes de enviar. O multer grava
+ * sempre primeiro em uploads/quarantine/ (nome de pasta mantido por
+ * compatibilidade com volumes Docker existentes) só para permitir detetar o
+ * tipo real por magic bytes antes de mover para uploads/final/.
  */
 router.post('/', uploadLimiter, auth.csrfProtection, requireUnlockedPad, (req, res) => {
   upload.single('file')(req, res, async (err) => {
@@ -111,25 +110,12 @@ router.post('/', uploadLimiter, auth.csrfProtection, requireUnlockedPad, (req, r
       const head = await readHeadBytes(quarantineFile);
       const sniffed = fileType.sniff(head, req.file.originalname);
 
-      // Renomeia dentro da própria quarentena para incluir a extensão real
-      // (necessário para o ffmpeg/exiftool identificarem corretamente o
-      // contentor, e para o Content-Type ser servido a partir dos magic
-      // bytes reais, nunca da extensão declarada pelo cliente).
+      // O nome guardado inclui a extensão real detetada por magic bytes
+      // (nunca a extensão declarada pelo cliente), para o Content-Type
+      // servido em /download e /preview ser sempre correto.
       const storedName = `${req.file.filename}${sniffed.ext || ''}`;
-      const renamedPath = storage.quarantinePath(storedName);
-      await fsp.rename(quarantineFile, renamedPath);
-
-      const cleanResult = await quarantine.cleanInQuarantine(renamedPath, sniffed);
-      if (!cleanResult.ok) {
-        await fsp.unlink(renamedPath).catch(() => {});
-        return res.status(422).json({
-          error: 'metadata_cleanup_failed',
-          message: 'Não foi possível limpar os metadados deste ficheiro em segurança. O upload foi rejeitado.',
-        });
-      }
-
       const finalDest = storage.finalPath(storedName);
-      await fsp.rename(renamedPath, finalDest);
+      await fsp.rename(quarantineFile, finalDest);
       finalStoredPath = finalDest;
 
       const stat = await fsp.stat(finalDest);

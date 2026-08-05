@@ -7,7 +7,7 @@ Além de texto com gravação automática, cada pad suporta upload de imagens, v
 ## Índice
 
 - [Funcionalidades](#funcionalidades)
-- [Como funciona a limpeza de metadados](#como-funciona-a-limpeza-de-metadados)
+- [Limpeza de metadados (app desktop / CLI)](#limpeza-de-metadados-app-desktop--cli)
 - [Pré-requisitos](#pré-requisitos)
 - [1. Criar o túnel na Cloudflare](#1-criar-o-túnel-na-cloudflare)
 - [2. Configurar o `.env`](#2-configurar-o-env)
@@ -26,36 +26,32 @@ Além de texto com gravação automática, cada pad suporta upload de imagens, v
 - Sincronização quase em tempo real entre dispositivos via WebSocket, com fallback automático para polling curto se o WebSocket não conseguir ligar.
 - Upload por botão, drag & drop, ou colar (Ctrl+V) — imagens e vídeos com pré-visualização inline, restantes ficheiros numa lista com nome, tamanho, download e apagar.
 - Limite de tamanho por ficheiro configurável, barra de progresso, e limpeza automática opcional de ficheiros antigos (TTL).
-- **Limpeza de metadados em duas camadas** (ver secção seguinte) — nenhum ficheiro fica acessível sem passar por ela.
+- O próprio Filepad **não limpa metadados** — guarda o ficheiro tal como o recebe (ver secção seguinte para quem precisa disso).
 - Password global do site (opcional) e password por pad (opcional).
 - Validação de tipo real por magic bytes, nomes de ficheiro aleatórios em disco, proteção CSRF, rate limiting, cabeçalhos de segurança (CSP restritiva, sem CDNs externos), texto sempre escapado no frontend.
 - Arranque com um único `docker compose up -d`, sem portas expostas na máquina — o acesso é só através de um túnel Cloudflare.
 
-## Como funciona a limpeza de metadados
+## Limpeza de metadados (app desktop / CLI)
 
-Este é o requisito mais delicado do projeto, por isso vale a pena explicar o desenho:
+O servidor e a página web do Filepad **não limpam metadados** — um ficheiro
+sobe exatamente como foi recebido. Se precisares de garantir que um
+documento não leva autor, empresa, GPS ou etiquetas de classificação/DLP
+(Titus, Microsoft Purview, etc.) quando o partilhas, faz a limpeza **antes**
+do upload, com uma destas ferramentas:
 
-**Camada 1 — no browser, antes do upload sair do teu computador** (só para os tipos onde isto é tecnicamente viável e fiável):
+- **App desktop (`desktop/`)** — Electron, mesma interface do browser
+  (abre a página real do teu Filepad), mas intercepta o upload para limpar
+  localmente documentos Office (`.docx`/`.xlsx`/`.pptx`, incluindo Custom
+  XML Parts de DLP) e PDF antes de saírem do computador. A limpeza é
+  opcional, exceto quando deteta tags de DLP num documento Office — nesse
+  caso é sempre aplicada. Ver `desktop/README.md`.
+- **CLI (`cli/`)** — `filepad-clean`, ferramenta em Go sem dependências,
+  para limpar (e opcionalmente enviar) documentos Office a partir da linha
+  de comandos ou de scripts. Ver `cli/README.md`.
 
-| Tipo | Técnica |
-|---|---|
-| Imagens JPEG/PNG/WebP | Reencode via `OffscreenCanvas` num Web Worker — o canvas só lê pixels, nunca preserva EXIF/GPS |
-| PDF | `pdf-lib`: limpa o dicionário Info e remove a stream XMP do catálogo; a gravação reescreve o ficheiro de raiz, descartando "incremental updates" antigos |
-| Office OOXML (`.docx`/`.xlsx`/`.pptx`) | `fflate` (ZIP): substitui `docProps/core.xml` e `docProps/app.xml` por versões vazias, remove `docProps/custom.xml`, a thumbnail e **toda a pasta `customXml/`** (Custom XML Parts — é ali que ferramentas de classificação/DLP empresariais como Titus ou Microsoft Purview Information Protection guardam etiquetas como `TitusGUID`/`CLASSIFICATION`, fora das propriedades habituais do Office) |
-
-Se a limpeza destes tipos falhar no browser (ex.: PDF encriptado, ficheiro corrompido), **o upload é bloqueado ali mesmo** — o ficheiro original nunca chega a ser enviado.
-
-Vídeo, áudio, Office legado (`.doc`/`.xls`/`.ppt`) e todos os outros tipos **não têm limpeza viável no browser** (não há forma fiável e leve de reescrever um `.mp4` ou um `.doc` binário em JavaScript do browser) e seguem diretamente para a camada 2.
-
-**Camada 2 — no servidor, obrigatória para TODOS os ficheiros** (mesmo os já limpos na camada 1 — funciona como garantia final):
-
-1. O ficheiro é gravado primeiro numa pasta de **quarentena**, fora do armazenamento definitivo.
-2. É identificado por magic bytes (não pela extensão).
-3. É limpo com `exiftool -all=` (imagens, PDF, Office legado), `ffmpeg -map_metadata -1` (vídeo/áudio, com cópia de stream sempre que possível), ou o mesmo limpador Node/`fflate` da camada 1 (Office OOXML — ver nota abaixo).
-4. Só se a limpeza terminar com sucesso é que o ficheiro é movido para o armazenamento definitivo e passa a existir na base de dados.
-5. Se falhar, o ficheiro de quarentena é apagado e o utilizador vê um erro claro — nunca fica um caminho de código onde um ficheiro por limpar se torne acessível.
-
-Ficheiros verdadeiramente genéricos (ex.: um `.bin` arbitrário, um `.zip` que não é um documento Office) não têm um formato de metadados conhecido para limpar; nesse caso a camada 2 ainda corre em modo best-effort mas uma eventual falha não bloqueia o upload, porque não há nada de específico para garantir.
+Outros tipos de ficheiro (imagens, vídeo, áudio, Office legado `.doc`/`.xls`/`.ppt`)
+sobem sem qualquer limpeza — nem a app desktop nem o CLI cobrem esses
+formatos atualmente.
 
 ## Pré-requisitos
 
@@ -208,7 +204,7 @@ docker compose up -d
 ```
 filepad/
 ├── docker-compose.yml       # serviços app + cloudflared
-├── Dockerfile                # imagem da app (Node + exiftool + ffmpeg)
+├── Dockerfile                # imagem da app (Node)
 ├── .env.example
 ├── package.json
 ├── server/
@@ -228,20 +224,15 @@ filepad/
 │       ├── padStore.js                 # acesso a pads/ficheiros na BD
 │       ├── storage.js                   # caminhos seguros em disco
 │       ├── fileType.js                   # deteção por magic bytes
-│       ├── quarantine.js                  # limpeza server-side (exiftool/ffmpeg)
-│       └── cleanup.js                      # tarefa agendada (TTL)
-└── public/
-    ├── pad.html / login.html
-    ├── css/style.css
-    └── js/
-        ├── app.js                        # lógica do pad (texto, WS, ficheiros)
-        ├── upload.js                      # drag&drop, colar, progresso
-        ├── metadata/
-        │   ├── worker.js                    # Web Worker de limpeza
-        │   ├── image-clean.js
-        │   ├── pdf-clean.js
-        │   └── office-clean.js
-        └── vendor/                          # pdf-lib e fflate servidos localmente
+│       └── cleanup.js                     # tarefa agendada (TTL)
+├── public/
+│   ├── pad.html / login.html
+│   ├── css/style.css
+│   └── js/
+│       ├── app.js                        # lógica do pad (texto, WS, ficheiros)
+│       └── upload.js                      # drag&drop, colar, progresso, sem limpeza
+├── cli/                       # filepad-clean: CLI Go, limpa Office localmente (ver cli/README.md)
+└── desktop/                   # app Electron: limpa Office/PDF localmente antes do upload (ver desktop/README.md)
 ```
 
 ## Variáveis de ambiente
@@ -258,10 +249,7 @@ filepad/
 ## Trade-offs e decisões técnicas
 
 - **Pad IDs com `/` e endpoints de ficheiros/password**: como qualquer caminho de URL (incluindo com barras) é um pad válido, os endpoints de ficheiros e de password usam `?id=` (e o WebSocket usa `?pad=`) em vez de o incluírem no próprio caminho do URL — evita ambiguidade entre "um pad chamado `notas/files`" e "o endpoint de ficheiros do pad `notas`".
-- **Limpeza de imagem no browser via re-encode**: garante remoção total de EXIF (incluindo GPS), mas é sempre uma reompressão (para JPEG/WebP, com qualidade 0.92) — não é bit-a-bit idêntica ao original. É a única forma fiável de garantir que os metadados não saem do dispositivo de origem.
-- **Vídeo/áudio e Office legado sem limpeza no browser**: reescrever contentores de vídeo ou o formato binário OLE2 (`.doc`/`.xls`/`.ppt`) em JavaScript do browser não é viável com bibliotecas leves — ficam só com a camada de quarentena no servidor (`ffmpeg`/`exiftool`), que continua a garantir que nada fica acessível sem ser limpo.
-- **`ffmpeg -c copy` com fallback para reencode**: tenta sempre remuxar sem recodificar (rápido, sem perda). Se o contentor recusar, faz reencode completo como última tentativa — mais lento, mas garante que a limpeza nunca falha por incompatibilidade evitável.
-- **Limpeza de Office OOXML na camada 2 não usa exiftool**: a versão de `exiftool` disponível nos repositórios do Debian (a que o `Dockerfile` instala) não sabe **escrever** `.docx`/`.xlsx`/`.pptx` (confirmado em testes: `Writing of DOCX files is not yet supported`) — sabe ler estas propriedades (precisa do módulo Perl `libarchive-zip-perl`, também instalado), mas não as consegue apagar. Por isso a camada 2 usa, para este tipo de ficheiro, o mesmo limpador Node/`fflate` da camada 1 (`server/services/officeClean.js`, espelhando `public/js/metadata/office-clean.js`), em vez de delegar no exiftool como acontece para imagens/PDF/Office legado. Continua a ser uma camada obrigatória e bloqueante: se falhar, o upload é rejeitado.
+- **Sem limpeza de metadados no servidor nem na página web**: o Filepad guarda ficheiros tal como os recebe. Quem precisar de garantir que um documento não leva metadados sensíveis faz essa limpeza antes do upload, com a [app desktop](#limpeza-de-metadados-app-desktop--cli) ou o CLI — mantém o servidor simples e sem dependências pesadas (`exiftool`/`ffmpeg`).
 - **Sessões por cookie, sem base de dados de utilizadores**: mantém o projeto simples (sem tabela de sessões, sem limpeza de sessões expiradas). Custo: se mudares o `COOKIE_SECRET` (ou não o fixares e o container reiniciar), todas as sessões — incluindo passwords de pads desbloqueados — são invalidadas. Definir um `COOKIE_SECRET` fixo evita isto.
 - **Password por pad guardada em cookie assinado, não em sessão no servidor**: mantém-se sem tabela de sessões; o "desbloqueio" de um pad é local ao browser que o desbloqueou, tal como no site em geral.
 
@@ -272,9 +260,6 @@ Confirma que `TUNNEL_TOKEN` no `.env` está correto e sem espaços a mais, depoi
 
 **A app não fica "healthy".**
 `docker compose logs app` — o healthcheck usa `curl http://127.0.0.1:3000/health` dentro do próprio container; se falhar, normalmente é um erro no arranque do Node (ver os logs) ou falta de espaço em disco para a base de dados.
-
-**Uploads de imagem/PDF/Office falham sempre com "limpeza de metadados falhou".**
-Confirma que a imagem foi construída com sucesso (`docker compose build app`) — o build instala `exiftool` e `ffmpeg`; se a imagem for antiga ou o build tiver falhado a meio, estes binários podem faltar.
 
 **Quero desativar a password do site outra vez.**
 Apaga ou deixa vazio o `SITE_PASSWORD` no `.env` e faz `docker compose up -d app`.

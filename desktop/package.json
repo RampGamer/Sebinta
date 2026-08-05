@@ -1,0 +1,48 @@
+{
+  "name": "filepad-desktop",
+  "version": "1.0.0",
+  "description": "App desktop Electron para o Filepad — mesma interface do browser, mas limpa Office/PDF localmente antes do upload.",
+  "private": true,
+  "license": "MIT",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --linux --mac --win"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.filepad.desktop",
+    "productName": "Filepad",
+    "files": [
+      "main.js",
+      "preload.js",
+      "clean/**/*",
+      "renderer/**/*"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "category": "Network"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
+  }
+}

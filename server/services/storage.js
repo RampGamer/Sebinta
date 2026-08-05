@@ -20,13 +20,6 @@ function finalPath(storedName) {
   return resolved;
 }
 
-function quarantinePath(storedName) {
-  if (!isSafeStoredName(storedName)) return null;
-  const resolved = path.resolve(config.quarantineDir, storedName);
-  if (!resolved.startsWith(path.resolve(config.quarantineDir) + path.sep)) return null;
-  return resolved;
-}
-
 function deleteStoredFile(storedName) {
   const p = finalPath(storedName);
   if (!p) return;
@@ -38,4 +31,4 @@ function deleteStoredFile(storedName) {
   });
 }
 
-module.exports = { isSafeStoredName, finalPath, quarantinePath, deleteStoredFile };
+module.exports = { isSafeStoredName, finalPath, deleteStoredFile };

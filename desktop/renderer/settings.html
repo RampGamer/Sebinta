@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Filepad — configurar servidor</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 28px; background: #14181f; color: #e6e6e6;
+    font: 14px -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  h1 { font-size: 16px; margin: 0 0 6px; }
+  p { color: #9aa1ad; margin: 0 0 18px; font-size: 12.5px; line-height: 1.5; }
+  input {
+    width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 6px;
+    border: 1px solid #333a47; background: #1c212b; color: #e6e6e6; font-size: 14px;
+  }
+  button {
+    margin-top: 14px; width: 100%; padding: 10px; border-radius: 6px; border: none;
+    background: #3a6df0; color: #fff; font-size: 14px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  .error { color: #ff6b6b; font-size: 12.5px; margin-top: 8px; min-height: 1em; }
+</style>
+</head>
+<body>
+  <h1>A que servidor Filepad ligar?</h1>
+  <p>Só precisas de indicar isto uma vez — fica gravado e nos próximos arranques a app abre direto no pad. Podes mudar mais tarde no menu Filepad → "Mudar servidor…".</p>
+  <input id="url" type="text" placeholder="https://notas.oteudominio.com" autofocus>
+  <div class="error" id="error"></div>
+  <button id="save">Continuar</button>
+
+  <script>
+    const input = document.getElementById('url');
+    const errorEl = document.getElementById('error');
+    const saveBtn = document.getElementById('save');
+
+    window.filepadSettings.getCurrentServerUrl().then((url) => {
+      if (url) input.value = url;
+    });
+
+    async function save() {
+      const raw = input.value.trim();
+      errorEl.textContent = '';
+      let url;
+      try {
+        url = new URL(raw);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error();
+      } catch (e) {
+        errorEl.textContent = 'Indica um URL completo, ex.: https://notas.oteudominio.com';
+        return;
+      }
+      saveBtn.disabled = true;
+      await window.filepadSettings.saveServerUrl(url.origin);
+    }
+
+    saveBtn.addEventListener('click', save);
+    input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') save(); });
+  </script>
+</body>
+</html>
