@@ -1,16 +1,18 @@
 # sebinta-desktop
 
-Desktop app (Electron) for Sebinta. Opens the same interface you'd see in a
-normal browser — same pad, same text, same files, real-time sync included
-— but intercepts every upload to clean metadata locally, **before** the
-file leaves your computer:
+Desktop app (Electron) for Sebinta. One window, several pads open as
+browser-style tabs — each tab is the same interface you'd see in a normal
+browser (same pad, same text, same files, real-time sync included, its own
+WebSocket connection so switching tabs is instant, no reload) — but every
+upload, in every tab, is intercepted to clean metadata locally, **before**
+the file leaves your computer:
 
 - **Office** (`.docx`/`.xlsx`/`.pptx`): removes `docProps/core.xml`,
   `docProps/app.xml`, `docProps/custom.xml`, the embedded thumbnail, and
   the entire `customXml/` folder — where classification/DLP tools like
   Titus or Microsoft Purview store tags outside the usual Office
-  properties. If those tags are detected, cleaning is **always applied**,
-  regardless of the toggle.
+  properties. Cleaning always runs; if DLP tags are detected it's simply
+  guaranteed regardless.
 - **PDF**: cleans the Info dictionary (author, title, dates…) and the XMP
   metadata stream.
 - Any other file type (image, video, audio, legacy Office
@@ -34,8 +36,11 @@ npm start
 The first time, it asks for your Sebinta server's URL (the same Cloudflare
 tunnel domain you already use in the browser, e.g.
 `https://notes.yourdomain.com`). It's remembered from then on — just open
-the app and you're on your pad, like opening a browser. To switch servers
-later, use the ⚙ button in the toolbar at the top of the window.
+the app and you're back on your open tabs, like a browser window. The ⚙
+button at the far left of the tab strip is a window-level setting (which
+server, not which pad) — use it to switch servers later. The `+` button
+opens a new tab where you can pick or create another pad on the same
+server, and open tabs are remembered across restarts.
 
 ## Package (installer)
 

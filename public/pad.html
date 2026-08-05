@@ -24,7 +24,11 @@
 </div>
 
 <header class="topbar" id="pad-header">
-  <div class="pad-name" id="pad-name">/</div>
+  <form class="pad-field" id="form-pad-path" autocomplete="off">
+    <span class="folder-icon" aria-hidden="true">📂</span>
+    <input type="text" id="pad-path-input" spellcheck="false" aria-label="Caminho do pad">
+    <button type="submit">Ir</button>
+  </form>
   <span class="protected-badge" id="protected-badge" title="Este pad está protegido por password" hidden>🔒 Protegido</span>
   <div class="status">
     <span class="status-dot" id="status-dot"></span>
