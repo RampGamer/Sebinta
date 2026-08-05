@@ -24,11 +24,13 @@
   "build": {
     "appId": "com.filepad.desktop",
     "productName": "Filepad",
+    "icon": "build/icon.png",
     "files": [
       "main.js",
       "preload.js",
       "clean/**/*",
-      "renderer/**/*"
+      "renderer/**/*",
+      "assets/**/*"
     ],
     "linux": {
       "target": "AppImage",
@@ -39,7 +41,7 @@
       "category": "public.app-category.productivity"
     },
     "win": {
-      "target": "nsis"
+      "target": "portable"
     }
   },
   "allowScripts": {

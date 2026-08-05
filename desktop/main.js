@@ -36,37 +36,31 @@ function saveConfig(cfg) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 
-function buildMenu(serverUrl) {
-  const template = [
-    {
-      label: 'Filepad',
-      submenu: [
-        {
-          label: 'Mudar servidor…',
-          click: () => openSettingsWindow(),
-        },
-        { type: 'separator' },
-        { role: 'quit', label: 'Sair' },
-      ],
-    },
-    { role: 'editMenu', label: 'Editar' },
-    { role: 'viewMenu', label: 'Ver' },
-  ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-}
+const APP_ICON = path.join(__dirname, 'assets', 'icon.png');
+
+// Sem menu nativo (File/Edit/View) — não fazia sentido numa app que é só
+// uma janela do pad; "Mudar servidor" passou para um botão na barra
+// injetada por preload.js (ver o IPC 'filepad:open-settings' abaixo).
+Menu.setApplicationMenu(null);
 
 function createMainWindow(serverUrl) {
   if (mainWindow) mainWindow.close();
   mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 800,
+    width: 1280,
+    height: 860,
+    icon: APP_ICON,
+    show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
     },
   });
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.maximize();
+    mainWindow.show();
+  });
   mainWindow.loadURL(serverUrl);
-  buildMenu(serverUrl);
 }
 
 function openSettingsWindow() {
@@ -78,13 +72,14 @@ function openSettingsWindow() {
     width: 480,
     height: 280,
     resizable: false,
+    icon: APP_ICON,
+    autoHideMenuBar: true,
     parent: mainWindow || undefined,
     webPreferences: {
       preload: path.join(__dirname, 'renderer', 'settings-preload.js'),
       contextIsolation: true,
     },
   });
-  settingsWindow.setMenuBarVisibility(false);
   settingsWindow.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
   settingsWindow.on('closed', () => { settingsWindow = null; });
 }
@@ -96,6 +91,8 @@ ipcMain.handle('filepad:save-server-url', (event, url) => {
   if (settingsWindow) settingsWindow.close();
   createMainWindow(url);
 });
+
+ipcMain.on('filepad:open-settings', () => openSettingsWindow());
 
 // Chamado pelo preload.js da janela principal quando um ficheiro está prestes
 // a ser enviado. Nunca contacta a rede — só lê os bytes recebidos por IPC.
