@@ -43,7 +43,10 @@ tarde: menu **Filepad → Mudar servidor…**.
 npm run dist
 ```
 
-Gera instaladores para Linux (AppImage), macOS (dmg) e Windows (nsis) via
-`electron-builder` (configuração em `package.json`). Builds cross-platform
-completos normalmente precisam de correr no respetivo SO (ou CI); a partir
-de Linux só o AppImage é garantido sem mais configuração.
+Gera Linux (AppImage), Windows (`nsis`, via o NSIS incluído no
+`electron-builder` — não precisa de Wine) e macOS (`.zip` do `.app`, x64 e
+arm64 — não `.dmg`, que depende de ferramentas exclusivas do macOS). Os
+binários de macOS não são assinados nem notarizados (sem certificado
+Apple); o Gatekeeper vai bloquear a abertura por omissão — o utilizador tem
+de fazer clique direito → Abrir da primeira vez, ou `xattr -d
+com.apple.quarantine Filepad.app` depois de descompactar.
