@@ -1,29 +1,29 @@
 # filepad-desktop
 
-App desktop (Electron) para o Filepad. Abre a mesma interface que verias num
-browser normal — mesmo pad, mesmo texto, mesmos ficheiros, sincronização em
-tempo real incluída — mas intercepta cada upload para limpar metadados
-localmente, **antes** de o ficheiro sair do computador:
+Desktop app (Electron) for Filepad. Opens the same interface you'd see in a
+normal browser — same pad, same text, same files, real-time sync included
+— but intercepts every upload to clean metadata locally, **before** the
+file leaves your computer:
 
-- **Office** (`.docx`/`.xlsx`/`.pptx`): remove `docProps/core.xml`,
-  `docProps/app.xml`, `docProps/custom.xml`, a thumbnail incorporada, e toda
-  a pasta `customXml/` — onde ferramentas de classificação/DLP como Titus ou
-  Microsoft Purview guardam etiquetas fora das propriedades habituais do
-  Office. Se essas tags forem detetadas, a limpeza é **sempre aplicada**,
-  independentemente do toggle.
-- **PDF**: limpa o dicionário Info (autor, título, datas…) e a stream de
-  metadados XMP.
-- Qualquer outro tipo de ficheiro (imagem, vídeo, áudio, Office legado
-  `.doc`/`.xls`/`.ppt`) segue sem alteração — tal como a versão web, que não
-  limpa nada.
+- **Office** (`.docx`/`.xlsx`/`.pptx`): removes `docProps/core.xml`,
+  `docProps/app.xml`, `docProps/custom.xml`, the embedded thumbnail, and
+  the entire `customXml/` folder — where classification/DLP tools like
+  Titus or Microsoft Purview store tags outside the usual Office
+  properties. If those tags are detected, cleaning is **always applied**,
+  regardless of the toggle.
+- **PDF**: cleans the Info dictionary (author, title, dates…) and the XMP
+  metadata stream.
+- Any other file type (image, video, audio, legacy Office
+  `.doc`/`.xls`/`.ppt`) passes through unchanged — same as the web version,
+  which doesn't clean anything.
 
-A limpeza em si reutiliza a mesma lógica já validada no CLI Go
-(`../cli/officeclean.go`) e na antiga limpeza de PDF do browser, mas corre em
-Node puro no processo principal do Electron — fora de qualquer Web Worker —
-o que evita as armadilhas (CSP, cache de worker desatualizado) que tornavam
-a limpeza no browser pouco fiável.
+The cleaning logic itself reuses the same code already validated in the Go
+CLI (`../cli/officeclean.go`) and the old browser-side PDF cleaner, but
+runs in plain Node in Electron's main process — outside any Web Worker —
+which avoids the pitfalls (CSP, stale worker cache) that made cleaning in
+the browser unreliable.
 
-## Instalar e correr
+## Install and run
 
 ```bash
 cd desktop
@@ -31,22 +31,22 @@ npm install
 npm start
 ```
 
-Na primeira vez, a app pede o URL do teu servidor Filepad (o mesmo domínio
-do túnel Cloudflare que já usas no browser, ex.:
-`https://notas.oteudominio.com`). Fica gravado — a partir daí é só abrir a
-app e já está no pad, como abrir o browser. Para mudar de servidor mais
-tarde: menu **Filepad → Mudar servidor…**.
+The first time, it asks for your Filepad server's URL (the same Cloudflare
+tunnel domain you already use in the browser, e.g.
+`https://notes.yourdomain.com`). It's remembered from then on — just open
+the app and you're on your pad, like opening a browser. To switch servers
+later, use the ⚙ button in the toolbar at the top of the window.
 
-## Empacotar (instalador)
+## Package (installer)
 
 ```bash
 npm run dist
 ```
 
-Gera Linux (AppImage), Windows (`nsis`, via o NSIS incluído no
-`electron-builder` — não precisa de Wine) e macOS (`.zip` do `.app`, x64 e
-arm64 — não `.dmg`, que depende de ferramentas exclusivas do macOS). Os
-binários de macOS não são assinados nem notarizados (sem certificado
-Apple); o Gatekeeper vai bloquear a abertura por omissão — o utilizador tem
-de fazer clique direito → Abrir da primeira vez, ou `xattr -d
-com.apple.quarantine Filepad.app` depois de descompactar.
+Produces Linux (AppImage), Windows (portable `.exe` — no installer, no
+copy under `AppData\Local`, just run it), and macOS (`.zip` of the `.app`,
+x64 and arm64 — not `.dmg`, which depends on macOS-only tooling). The
+macOS binaries aren't signed or notarized (no Apple certificate);
+Gatekeeper will block opening them by default — right-click → Open the
+first time, or `xattr -d com.apple.quarantine Filepad.app` after
+unzipping.
