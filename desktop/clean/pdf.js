@@ -1,23 +1,29 @@
 'use strict';
 
 /*
- * Limpeza de metadados de PDF no browser, usando pdf-lib (carregada via
- * importScripts em worker.js, expõe o global PDFLib).
+ * Limpeza de metadados de PDF, portada para Node puro (processo principal
+ * do Electron) a partir da antiga public/js/metadata/pdf-clean.js — mesma
+ * lógica, mesma biblioteca (pdf-lib), só a correr fora do browser:
  *
  * - Limpa o dicionário Info (Title, Author, Subject, Keywords, Creator,
  *   Producer, datas de criação/modificação).
- * - Remove a stream de metadados XMP referenciada pelo catálogo
- *   (catalog.delete(PDFName.of('Metadata'))).
- * - Ao gravar com pdfDoc.save(), o documento é reescrito de raiz, o que
- *   também descarta quaisquer "incremental updates" antigos que pudessem
- *   conter versões anteriores do documento com metadados.
+ * - Remove a stream de metadados XMP referenciada pelo catálogo.
+ * - pdfDoc.save() reescreve o documento de raiz, descartando quaisquer
+ *   "incremental updates" antigos que pudessem conter versões anteriores
+ *   do documento com metadados.
  */
-self.cleanPdf = async function cleanPdf(buffer) {
-  const { PDFDocument, PDFName } = self.PDFLib;
 
+const { PDFDocument, PDFName } = require('pdf-lib');
+
+/**
+ * @param {Buffer} inputBuffer conteúdo do ficheiro .pdf
+ * @returns {Promise<Buffer>} PDF limpo
+ * @throws {Error} se o PDF for inválido, encriptado ou corrompido
+ */
+async function cleanPdf(inputBuffer) {
   let pdfDoc;
   try {
-    pdfDoc = await PDFDocument.load(buffer, {
+    pdfDoc = await PDFDocument.load(inputBuffer, {
       updateMetadata: false,
       throwOnInvalidObject: false,
       ignoreEncryption: false,
@@ -47,7 +53,7 @@ self.cleanPdf = async function cleanPdf(buffer) {
   } catch (e) {
     throw new Error('Falha ao gravar o PDF limpo.');
   }
+  return Buffer.from(outBytes);
+}
 
-  const outBuffer = outBytes.buffer.slice(outBytes.byteOffset, outBytes.byteOffset + outBytes.byteLength);
-  return { buffer: outBuffer, mimeType: 'application/pdf' };
-};
+module.exports = { cleanPdf };

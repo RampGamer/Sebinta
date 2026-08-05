@@ -2,82 +2,23 @@
 
 /*
  * UX de upload: botão, drag&drop, colar (Ctrl+V), barra de progresso, e
- * despacho para o Web Worker de limpeza de metadados (worker.js) antes de
- * enviar imagens, PDFs e ficheiros Office OOXML. Os restantes tipos seguem
- * diretamente para o upload — são limpos apenas no servidor (quarentena).
+ * envio do ficheiro tal como está — este projeto não limpa metadados (ver
+ * a app desktop em desktop/ e o CLI em cli/ para isso).
+ *
+ * `Filepad.setPreUploadHook(fn)` é um ponto de extensão opcional, sem uso
+ * nenhum aqui: a app desktop Electron injeta-o para poder interceptar o
+ * ficheiro antes do envio (limpá-lo localmente) sem duplicar esta UI.
  */
 (function () {
   if (!window.Filepad) return; // app.js não carregou (não deveria acontecer)
-
-  const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
-  const PDF_EXTS = new Set(['.pdf']);
-  const OOXML_EXTS = new Set(['.docx', '.xlsx', '.pptx']);
 
   const fileInput = document.getElementById('file-input');
   const chooseBtn = document.getElementById('btn-choose-file');
   const progressList = document.getElementById('upload-progress-list');
   const dropzoneOverlay = document.getElementById('dropzone-overlay');
 
-  let worker = null;
-  let msgCounter = 0;
-  const pending = new Map();
-
-  function getWorker() {
-    if (!worker) {
-      worker = new Worker('/js/metadata/worker.js');
-      worker.addEventListener('message', (ev) => {
-        const { id, ok, buffer, mimeType, error } = ev.data;
-        const resolver = pending.get(id);
-        if (!resolver) return;
-        pending.delete(id);
-        if (ok) resolver.resolve({ buffer, mimeType });
-        else resolver.reject(new Error(error));
-      });
-      worker.addEventListener('error', (ev) => {
-        // Erro genérico no worker (ex.: falha a carregar um script vendor).
-        for (const [id, resolver] of pending) {
-          resolver.reject(new Error('Falha interna na limpeza de metadados.'));
-          pending.delete(id);
-        }
-      });
-    }
-    return worker;
-  }
-
-  function extOf(name) {
-    const idx = name.lastIndexOf('.');
-    return idx === -1 ? '' : name.slice(idx).toLowerCase();
-  }
-
-  function detectClientCleanKind(file) {
-    const ext = extOf(file.name);
-    if (IMAGE_EXTS.has(ext)) return 'image';
-    if (PDF_EXTS.has(ext)) return 'pdf';
-    if (OOXML_EXTS.has(ext)) return 'ooxml';
-    return null;
-  }
-
-  /**
-   * Limpa um ficheiro no browser antes do upload, se o tipo o exigir.
-   * @returns {Promise<File>} o ficheiro (limpo, ou o original se não aplicável)
-   * @throws {Error} se a limpeza era obrigatória para este tipo e falhou —
-   *   nesse caso o upload NUNCA deve prosseguir com o ficheiro original.
-   */
-  async function cleanClientSide(file, onStatus) {
-    const kind = detectClientCleanKind(file);
-    if (!kind) return file; // tipo sem limpeza viável no browser (vídeo/áudio, .doc/.xls/.ppt legado, outros)
-
-    onStatus('a limpar metadados…');
-    const buffer = await file.arrayBuffer();
-    const id = ++msgCounter;
-    const w = getWorker();
-
-    const resultPromise = new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
-    w.postMessage({ id, kind, buffer, mimeType: file.type || '' }, [buffer]);
-
-    const { buffer: cleanedBuffer, mimeType } = await resultPromise;
-    return new File([cleanedBuffer], file.name, { type: mimeType || file.type });
-  }
+  let preUploadHook = null;
+  window.Filepad.setPreUploadHook = (fn) => { preUploadHook = fn; };
 
   function createProgressItem(name) {
     const item = document.createElement('div');
@@ -162,9 +103,9 @@
   async function handleOneFile(file) {
     const progress = createProgressItem(file.name);
     try {
-      const cleaned = await cleanClientSide(file, progress.setStatus);
+      const toUpload = preUploadHook ? await preUploadHook(file, progress.setStatus) : file;
       progress.setStatus('a enviar…');
-      await uploadWithProgress(cleaned, progress);
+      await uploadWithProgress(toUpload, progress);
       Filepad.refresh();
       setTimeout(() => progress.remove(), 1200);
     } catch (err) {
