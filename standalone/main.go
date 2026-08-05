@@ -51,6 +51,16 @@ func main() {
 		serveEmbeddedFile(w, r, webFS, "login.html")
 	})
 
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		b, err := fs.ReadFile(webFS, "favicon.ico")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "image/x-icon")
+		w.Write(b)
+	})
+
 	registerAuthRoutes(mux, cfg, db)
 	registerPadRoutes(mux, cfg, db, hub, siteAuthAPIGate(cfg))
 	registerFileRoutes(mux, cfg, db, hub, siteAuthAPIGate(cfg))
@@ -97,7 +107,7 @@ func main() {
 			go func() {
 				select {
 				case u := <-urlCh:
-					log.Printf("Filepad disponível em: %s", u)
+					printHighlight("Filepad disponível em: %s", u)
 				case <-time.After(30 * time.Second):
 					log.Println("O túnel Cloudflare ainda não respondeu com um URL — ver linhas [cloudflared] acima.")
 				}
@@ -133,12 +143,14 @@ func ensureCsrfMiddleware(cfg *Config, next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Log mínimo: método + caminho apenas. Nunca corpo, query de password, ou
-// cookies (ver server/index.js — mesma política).
+// Regista IP do cliente + método + caminho (nunca corpo, query de
+// password, ou cookies — o caminho por si só não inclui `?id=...`, ver
+// nota equivalente em server/index.js). O IP é o que já usamos para rate
+// limiting (clientIP, em ratelimit.go), por isso reflete TRUST_PROXY.
 func accessLog(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/css") && !strings.HasPrefix(r.URL.Path, "/js") {
-			log.Printf("%s %s", r.Method, r.URL.Path)
+			log.Printf("%s %s %s", clientIP(r, currentConfig), r.Method, r.URL.Path)
 		}
 		next(w, r)
 	}
