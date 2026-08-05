@@ -83,14 +83,39 @@ header.topbar {
   flex-wrap: wrap;
 }
 
-.topbar .pad-name {
-  font-weight: 600;
-  font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 40vw;
+.pad-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.4rem 0.3rem 0.65rem;
+  min-width: 0;
+  flex: 0 1 320px;
 }
+.pad-field:focus-within { border-color: var(--accent); }
+.pad-field .folder-icon { font-size: 0.9rem; color: var(--text-dim); flex-shrink: 0; }
+.pad-field input[type="text"] {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 400;
+  padding: 0.2rem 0;
+  min-width: 0;
+  flex: 1;
+}
+.pad-field input[type="text"]:focus { outline: none; }
+.pad-field button {
+  padding: 0.28rem 0.65rem;
+  font-size: 0.78rem;
+  border-color: transparent;
+  background: var(--bg-panel);
+  flex-shrink: 0;
+}
+.pad-field button:hover { background: var(--accent); border-color: var(--accent); color: white; }
 
 .topbar .status {
   font-size: 0.78rem;
@@ -128,11 +153,6 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
-  gap: 1rem;
-  max-width: 1100px;
-  width: 100%;
-  margin: 0 auto;
 }
 /* main {display:flex} (regra de autor) tem prioridade sobre o [hidden] da
    folha de estilos do browser (só UA) — sem isto o "hidden" não escondia
@@ -143,17 +163,23 @@ main {
   width: 100%;
   min-height: 40vh;
   flex: 1;
-  resize: vertical;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  resize: none;
+  background: var(--bg);
+  border: none;
+  border-radius: 0;
   color: var(--text);
-  padding: 1rem;
+  padding: 1.5rem 2rem;
   font-size: 1rem;
   line-height: 1.5;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-#editor:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+#editor:focus { outline: none; }
+
+section.files {
+  padding: 1rem 2rem 1.4rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+}
 
 /* --- Dropzone overlay --- */
 .dropzone-overlay {
@@ -342,8 +368,9 @@ footer.hint {
 }
 
 @media (max-width: 640px) {
-  .topbar .pad-name { max-width: 60vw; }
-  main { padding: 0.7rem; gap: 0.7rem; }
+  .pad-field { flex-basis: 100%; }
+  #editor { padding: 1rem; }
+  section.files { padding: 0.7rem 1rem 1rem; }
   .file-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 
@@ -355,6 +382,9 @@ footer.hint {
   justify-content: center;
   padding: 1.5rem;
 }
+/* mesmo problema do #pad-header[hidden] acima: display:flex (regra de
+   autor) ganha ao [hidden] da folha de estilos do browser. */
+.landing[hidden] { display: none; }
 .landing-card {
   width: 100%;
   max-width: 420px;

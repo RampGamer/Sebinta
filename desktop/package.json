@@ -27,7 +27,7 @@
     "icon": "build/icon.png",
     "files": [
       "main.js",
-      "preload.js",
+      "webview-preload.js",
       "clean/**/*",
       "renderer/**/*",
       "assets/**/*"

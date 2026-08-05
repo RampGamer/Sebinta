@@ -29,7 +29,8 @@
   }
 
   const editor = document.getElementById('editor');
-  const padNameEl = document.getElementById('pad-name');
+  const padPathForm = document.getElementById('form-pad-path');
+  const padPathInput = document.getElementById('pad-path-input');
   const statusDot = document.getElementById('status-dot');
   const statusText = document.getElementById('status-text');
   const fileGrid = document.getElementById('file-grid');
@@ -70,8 +71,15 @@
   let pollTimer = null;
   let wsFailCount = 0;
 
-  padNameEl.textContent = '/' + padId;
+  padPathInput.value = padId;
   document.title = '/' + padId + ' — Sebinta';
+
+  padPathForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const raw = padPathInput.value.trim();
+    if (!raw || raw === padId) return;
+    window.location.href = new URL(raw, window.location.origin + '/').href;
+  });
 
   // --- utilidades ---
   function getCookie(name) {
