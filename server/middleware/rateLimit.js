@@ -2,7 +2,7 @@
 
 const rateLimit = require('express-rate-limit');
 
-// Password do site: poucas tentativas por IP, para dificultar brute force.
+// Site password: few attempts per IP, to make brute-forcing harder.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -11,7 +11,7 @@ const loginLimiter = rateLimit({
   message: { error: 'too_many_attempts' },
 });
 
-// Password de pad: mesma lógica, janela mais curta.
+// Pad password: same logic, shorter window.
 const padPasswordLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 15,
@@ -20,7 +20,7 @@ const padPasswordLimiter = rateLimit({
   message: { error: 'too_many_attempts' },
 });
 
-// Uploads: limita número de pedidos por IP (o limite de tamanho é tratado à parte).
+// Uploads: limits number of requests per IP (the size limit is handled separately).
 const uploadLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   limit: 60,
@@ -29,7 +29,7 @@ const uploadLimiter = rateLimit({
   message: { error: 'too_many_uploads' },
 });
 
-// Escrita de texto no pad: generoso (autosave), mas ainda com um teto.
+// Writing text to the pad: generous (autosave), but still capped.
 const padWriteLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   limit: 120,

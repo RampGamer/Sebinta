@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Limitador por IP em memória, janela fixa — mesmo algoritmo e mesmos
-// limites que server/middleware/rateLimit.js (express-rate-limit).
+// In-memory per-IP limiter, fixed window — same algorithm and same limits
+// as server/middleware/rateLimit.js (express-rate-limit).
 type RateLimiter struct {
 	window  time.Duration
 	limit   int
@@ -28,8 +28,8 @@ func newRateLimiter(window time.Duration, limit int, message string) *RateLimite
 	return &RateLimiter{window: window, limit: limit, message: message, buckets: map[string]*bucket{}}
 }
 
-// allow regista um pedido para o IP dado; devolve false se o limite da
-// janela atual já foi excedido.
+// allow records a request for the given IP; returns false if the current
+// window's limit has already been exceeded.
 func (rl *RateLimiter) allow(ip string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
@@ -64,9 +64,9 @@ var (
 	padWriteLimiter    = newRateLimiter(1*time.Minute, 120, "too_many_requests")
 )
 
-// clientIP replica o comportamento do "trust proxy" do Express: com
-// TRUST_PROXY ativo (omissão), usa o primeiro IP de X-Forwarded-For; caso
-// contrário usa sempre o IP da ligação TCP direta.
+// clientIP replicates Express's "trust proxy" behavior: with TRUST_PROXY
+// enabled (the default), uses the first IP in X-Forwarded-For; otherwise
+// always uses the direct TCP connection's IP.
 func clientIP(r *http.Request, cfg *Config) string {
 	if cfg != nil && cfg.TrustProxy {
 		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {

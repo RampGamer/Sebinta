@@ -8,8 +8,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// Schema IDÊNTICO a server/db.js — o mesmo DATA_DIR/UPLOADS_DIR pode ser
-// usado indistintamente pelo servidor Node ou por este, sem migração.
+// Schema IDENTICAL to server/db.js — the same DATA_DIR/UPLOADS_DIR can be
+// used interchangeably by the Node server or this one, with no migration.
 const schema = `
 CREATE TABLE IF NOT EXISTS pads (
   id TEXT PRIMARY KEY,
@@ -37,25 +37,26 @@ CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);
 
 func openDB(cfg *Config) *sql.DB {
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
-		log.Fatalf("não foi possível criar %s: %v", cfg.DataDir, err)
+		log.Fatalf("could not create %s: %v", cfg.DataDir, err)
 	}
 	if err := os.MkdirAll(cfg.QuarantineDir, 0o755); err != nil {
-		log.Fatalf("não foi possível criar %s: %v", cfg.QuarantineDir, err)
+		log.Fatalf("could not create %s: %v", cfg.QuarantineDir, err)
 	}
 	if err := os.MkdirAll(cfg.FinalDir, 0o755); err != nil {
-		log.Fatalf("não foi possível criar %s: %v", cfg.FinalDir, err)
+		log.Fatalf("could not create %s: %v", cfg.FinalDir, err)
 	}
 
 	db, err := sql.Open("sqlite", cfg.DBPath+"?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)")
 	if err != nil {
-		log.Fatalf("não foi possível abrir a base de dados: %v", err)
+		log.Fatalf("could not open the database: %v", err)
 	}
-	// SQLite não suporta bem escrita concorrente vinda de várias ligações;
-	// uma única ligação evita "database is locked" sob carga concorrente.
+	// SQLite doesn't handle concurrent writes from multiple connections
+	// well; a single connection avoids "database is locked" under
+	// concurrent load.
 	db.SetMaxOpenConns(1)
 
 	if _, err := db.Exec(schema); err != nil {
-		log.Fatalf("não foi possível criar o schema: %v", err)
+		log.Fatalf("could not create the schema: %v", err)
 	}
 	return db
 }

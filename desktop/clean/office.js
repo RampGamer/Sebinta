@@ -1,14 +1,14 @@
 'use strict';
 
 /*
- * Limpeza de metadados Office OOXML (.docx/.xlsx/.pptx), portada para Node
- * puro (processo principal do Electron, fora de qualquer Worker/CSP de
- * página). Espelha a lógica já validada em cli/officeclean.go e na antiga
- * public/js/metadata/office-clean.js: substitui docProps/core.xml e
- * docProps/app.xml por versões vazias, remove docProps/custom.xml, a
- * thumbnail incorporada, e toda a pasta customXml/ (Custom XML Parts — onde
- * ferramentas de classificação/DLP como Titus ou Microsoft Purview guardam
- * etiquetas fora das propriedades habituais do Office).
+ * Office OOXML (.docx/.xlsx/.pptx) metadata cleaning, ported to plain Node
+ * (Electron main process, outside any page Worker/CSP). Mirrors the logic
+ * already validated in cli/officeclean.go and the old
+ * public/js/metadata/office-clean.js: replaces docProps/core.xml and
+ * docProps/app.xml with empty versions, removes docProps/custom.xml, the
+ * embedded thumbnail, and the entire customXml/ folder (Custom XML Parts —
+ * where classification/DLP tools like Titus or Microsoft Purview store
+ * tags outside the usual Office properties).
  */
 
 const fflate = require('fflate');
@@ -46,16 +46,16 @@ function stripContentTypeOverrides(xmlText) {
 }
 
 /**
- * @param {Buffer} inputBuffer conteúdo do ficheiro .docx/.xlsx/.pptx
- * @returns {{buffer: Buffer, removed: string[]}} conteúdo limpo e lista legível do que foi removido
- * @throws {Error} se o ficheiro não for um pacote OOXML válido
+ * @param {Buffer} inputBuffer contents of the .docx/.xlsx/.pptx file
+ * @returns {{buffer: Buffer, removed: string[]}} cleaned contents and a human-readable list of what was removed
+ * @throws {Error} if the file isn't a valid OOXML package
  */
 function cleanOoxml(inputBuffer) {
   let zip;
   try {
     zip = fflate.unzipSync(new Uint8Array(inputBuffer));
   } catch (e) {
-    throw new Error('Ficheiro Office inválido ou corrompido — não foi possível limpar os metadados.');
+    throw new Error('Invalid or corrupted Office file — could not clean the metadata.');
   }
 
   const decoder = new TextDecoder('utf-8', { fatal: false });
@@ -64,12 +64,12 @@ function cleanOoxml(inputBuffer) {
   let touchedAnyPart = false;
 
   if (zip['docProps/core.xml']) {
-    removed.push('Propriedades principais (autor, título, datas de criação/edição) — docProps/core.xml');
+    removed.push('Core properties (author, title, creation/edit dates) — docProps/core.xml');
     zip['docProps/core.xml'] = encoder.encode(EMPTY_CORE_XML);
     touchedAnyPart = true;
   }
   if (zip['docProps/app.xml']) {
-    removed.push('Propriedades da aplicação (empresa, gestor, tempo de edição) — docProps/app.xml');
+    removed.push('Application properties (company, manager, editing time) — docProps/app.xml');
     zip['docProps/app.xml'] = encoder.encode(EMPTY_APP_XML);
     touchedAnyPart = true;
   }
@@ -82,9 +82,9 @@ function cleanOoxml(inputBuffer) {
     else if (name === 'docProps/custom.xml') { hasCustomProps = true; delete zip[name]; touchedAnyPart = true; }
     else if (/^docProps\/thumbnail\./.test(name)) { hasThumbnail = true; delete zip[name]; touchedAnyPart = true; }
   }
-  if (hasCustomProps) removed.push('Propriedades personalizadas — docProps/custom.xml');
-  if (hasThumbnail) removed.push('Miniatura incorporada no documento');
-  if (customXmlCount > 0) removed.push(`Custom XML Parts — etiquetas de classificação/DLP (${customXmlCount} ficheiro(s))`);
+  if (hasCustomProps) removed.push('Custom properties — docProps/custom.xml');
+  if (hasThumbnail) removed.push('Thumbnail embedded in the document');
+  if (customXmlCount > 0) removed.push(`Custom XML Parts — classification/DLP tags (${customXmlCount} file(s))`);
 
   for (const name of Object.keys(zip)) {
     if (!name.endsWith('.rels')) continue;
@@ -99,14 +99,14 @@ function cleanOoxml(inputBuffer) {
   }
 
   if (!touchedAnyPart) {
-    throw new Error('Este ficheiro não parece ser um documento Office OOXML válido.');
+    throw new Error('This file doesn\'t look like a valid Office OOXML document.');
   }
 
   let repacked;
   try {
     repacked = fflate.zipSync(zip, { level: 6 });
   } catch (e) {
-    throw new Error('Falha ao reconstruir o documento depois de limpar os metadados.');
+    throw new Error('Failed to rebuild the document after cleaning the metadata.');
   }
   return { buffer: Buffer.from(repacked), removed };
 }

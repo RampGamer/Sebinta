@@ -44,8 +44,8 @@ func contentDispositionHeader(disposition, filename string) string {
 	return fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, fallback.String(), url.PathEscape(filename))
 }
 
-// requirePadForFiles replica requireUnlockedPad de server/routes/files.js:
-// valida ?id=, garante que o pad existe e não está trancado.
+// requirePadForFiles mirrors requireUnlockedPad from server/routes/files.js:
+// validates ?id=, ensures the pad exists and isn't locked.
 func requirePadForFiles(cfg *Config, db *sql.DB, next func(w http.ResponseWriter, r *http.Request, padID string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		padID := normalizePadID(r.URL.Query().Get("id"))
@@ -67,12 +67,12 @@ func requirePadForFiles(cfg *Config, db *sql.DB, next func(w http.ResponseWriter
 }
 
 /*
- * POST /api/files?id=... (multipart/form-data, campo "file")
+ * POST /api/files?id=... (multipart/form-data, field "file")
  *
- * Sem limpeza de metadados — tal como o servidor Node atual, o ficheiro é
- * gravado exatamente como chega. Passa primeiro por uploads/quarantine/
- * (nome de pasta mantido por paridade) só para permitir detetar o tipo real
- * por magic bytes antes de mover para uploads/final/.
+ * No metadata cleaning — just like the current Node server, the file is
+ * saved exactly as received. It goes through uploads/quarantine/ first
+ * (folder name kept for parity) just to allow detecting the real type via
+ * magic bytes before moving it to uploads/final/.
  */
 func handleFileUpload(cfg *Config, db *sql.DB, hub *wsHub) func(http.ResponseWriter, *http.Request, string) {
 	return func(w http.ResponseWriter, r *http.Request, padID string) {
@@ -210,8 +210,8 @@ func handleFileDownload(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http
 	}
 }
 
-// SVG nunca é pré-visualizado inline (pode conter <script>); só imagem
-// raster e vídeo têm preview.
+// SVG is never previewed inline (it can contain <script>); only raster
+// images and video get a preview.
 func handleFilePreview(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http.Request, string) {
 	return func(w http.ResponseWriter, r *http.Request, padID string) {
 		fileID := r.PathValue("fileId")

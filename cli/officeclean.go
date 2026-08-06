@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-// Espelha public/js/metadata/office-clean.js e server/services/officeClean.js:
-// mesma lógica de limpeza, para os três lados (browser, servidor, CLI) se
-// comportarem de forma idêntica sobre um .docx/.xlsx/.pptx.
+// Mirrors public/js/metadata/office-clean.js and server/services/officeClean.js:
+// same cleaning logic, so all three sides (browser, server, CLI) behave
+// identically on a .docx/.xlsx/.pptx.
 
 const emptyCoreXML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></cp:coreProperties>`
@@ -28,9 +28,9 @@ var (
 	partNameAttrRe = regexp.MustCompile(`PartName="([^"]*)"`)
 )
 
-// Partes cujo Target/PartName deve ser removido dos ficheiros de relações e
-// do [Content_Types].xml depois de apagadas — evita que o Word/Excel/
-// PowerPoint peçam para "reparar" o ficheiro ao abrir.
+// Parts whose Target/PartName must be removed from the relationship files
+// and [Content_Types].xml once deleted — avoids Word/Excel/PowerPoint
+// prompting to "repair" the file on open.
 var removedPartMatchers = []*regexp.Regexp{
 	regexp.MustCompile(`customXml/`),
 	regexp.MustCompile(`docProps/thumbnail\.`),
@@ -75,16 +75,16 @@ func stripContentTypeOverrides(xmlText string) string {
 	})
 }
 
-// CleanOoxml remove docProps/core.xml e docProps/app.xml (autor, empresa,
-// datas…), docProps/custom.xml, a thumbnail incorporada, e toda a pasta
-// customXml/ (Custom XML Parts — onde ferramentas de classificação/DLP
-// empresariais como Titus ou Microsoft Purview guardam etiquetas fora das
-// propriedades habituais do Office). Devolve o documento limpo e uma lista
-// legível do que foi encontrado e removido.
+// CleanOoxml removes docProps/core.xml and docProps/app.xml (author,
+// company, dates…), docProps/custom.xml, the embedded thumbnail, and the
+// entire customXml/ folder (Custom XML Parts — where enterprise
+// classification/DLP tools like Titus or Microsoft Purview store tags
+// outside the usual Office properties). Returns the cleaned document and a
+// human-readable list of what was found and removed.
 func CleanOoxml(data []byte) ([]byte, []string, error) {
 	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, fmt.Errorf("ficheiro Office inválido ou corrompido")
+		return nil, nil, fmt.Errorf("invalid or corrupted Office file")
 	}
 
 	parts := make(map[string][]byte, len(zr.File))
@@ -92,12 +92,12 @@ func CleanOoxml(data []byte) ([]byte, []string, error) {
 	for _, f := range zr.File {
 		rc, err := f.Open()
 		if err != nil {
-			return nil, nil, fmt.Errorf("falha a ler %q: %w", f.Name, err)
+			return nil, nil, fmt.Errorf("failed to read %q: %w", f.Name, err)
 		}
 		content, err := io.ReadAll(rc)
 		rc.Close()
 		if err != nil {
-			return nil, nil, fmt.Errorf("falha a ler %q: %w", f.Name, err)
+			return nil, nil, fmt.Errorf("failed to read %q: %w", f.Name, err)
 		}
 		parts[f.Name] = content
 		order = append(order, f.Name)
@@ -108,14 +108,14 @@ func CleanOoxml(data []byte) ([]byte, []string, error) {
 
 	if content, ok := parts["docProps/core.xml"]; ok {
 		if partHasContent(string(content)) {
-			removed = append(removed, "Propriedades principais (autor, título, datas de criação/edição) — docProps/core.xml")
+			removed = append(removed, "Core properties (author, title, creation/edit dates) — docProps/core.xml")
 		}
 		parts["docProps/core.xml"] = []byte(emptyCoreXML)
 		touchedAnyPart = true
 	}
 	if content, ok := parts["docProps/app.xml"]; ok {
 		if partHasContent(string(content)) {
-			removed = append(removed, "Propriedades da aplicação (empresa, gestor, tempo de edição) — docProps/app.xml")
+			removed = append(removed, "Application properties (company, manager, editing time) — docProps/app.xml")
 		}
 		parts["docProps/app.xml"] = []byte(emptyAppXML)
 		touchedAnyPart = true
@@ -142,13 +142,13 @@ func CleanOoxml(data []byte) ([]byte, []string, error) {
 		}
 	}
 	if hasCustomProps {
-		removed = append(removed, "Propriedades personalizadas — docProps/custom.xml")
+		removed = append(removed, "Custom properties — docProps/custom.xml")
 	}
 	if hasThumbnail {
-		removed = append(removed, "Miniatura incorporada no documento")
+		removed = append(removed, "Thumbnail embedded in the document")
 	}
 	if customXmlCount > 0 {
-		removed = append(removed, fmt.Sprintf("Custom XML Parts — etiquetas de classificação/DLP (%d ficheiro(s))", customXmlCount))
+		removed = append(removed, fmt.Sprintf("Custom XML Parts — classification/DLP tags (%d file(s))", customXmlCount))
 	}
 	for name := range deleted {
 		delete(parts, name)
@@ -178,7 +178,7 @@ func CleanOoxml(data []byte) ([]byte, []string, error) {
 	}
 
 	if !touchedAnyPart {
-		return nil, nil, fmt.Errorf("este ficheiro não parece ser um documento Office OOXML válido")
+		return nil, nil, fmt.Errorf("this file doesn't look like a valid Office OOXML document")
 	}
 
 	var buf bytes.Buffer
@@ -186,14 +186,14 @@ func CleanOoxml(data []byte) ([]byte, []string, error) {
 	for _, name := range order {
 		w, err := zw.Create(name)
 		if err != nil {
-			return nil, nil, fmt.Errorf("falha a reconstruir o documento: %w", err)
+			return nil, nil, fmt.Errorf("failed to rebuild the document: %w", err)
 		}
 		if _, err := w.Write(parts[name]); err != nil {
-			return nil, nil, fmt.Errorf("falha a reconstruir o documento: %w", err)
+			return nil, nil, fmt.Errorf("failed to rebuild the document: %w", err)
 		}
 	}
 	if err := zw.Close(); err != nil {
-		return nil, nil, fmt.Errorf("falha a reconstruir o documento: %w", err)
+		return nil, nil, fmt.Errorf("failed to rebuild the document: %w", err)
 	}
 
 	return buf.Bytes(), removed, nil

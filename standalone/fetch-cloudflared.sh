@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Descarrega os binários oficiais do cloudflared para as 4 plataformas
-# suportadas, para dentro de standalone/assets/ — go:embed precisa deles
-# presentes em disco no momento da compilação (ver tunnel_*.go). Corre isto
-# uma vez antes de compilar; os binários não ficam no repositório (são
-# grandes e mudam de versão para versão do cloudflared).
+# Downloads the official cloudflared binaries for the 4 supported
+# platforms, into standalone/assets/ — go:embed needs them present on disk
+# at build time (see tunnel_*.go). Run this once before building; the
+# binaries don't live in the repo (they're large and change from version to
+# version of cloudflared).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -19,7 +19,7 @@ mkdir -p assets
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-echo "A descarregar cloudflared ($VERSION) para as 4 plataformas..."
+echo "Downloading cloudflared ($VERSION) for the 4 platforms..."
 
 curl -fsSL -o assets/cloudflared-linux-amd64 "$BASE/cloudflared-linux-amd64"
 curl -fsSL -o assets/cloudflared-windows-amd64.exe "$BASE/cloudflared-windows-amd64.exe"
@@ -34,5 +34,5 @@ mv "$tmp/cloudflared" assets/cloudflared-darwin-arm64
 
 chmod +x assets/cloudflared-linux-amd64 assets/cloudflared-darwin-amd64 assets/cloudflared-darwin-arm64
 
-echo "Pronto:"
+echo "Done:"
 ls -la assets/

@@ -1,20 +1,20 @@
 'use strict';
 
 /*
- * Deteta o tipo real de um ficheiro a partir dos "magic bytes" (assinatura
- * binária), em vez de confiar na extensão ou no Content-Type enviado pelo
- * browser. Isto é usado para decidir o Content-Type real a servir e se um
- * ficheiro pode ter pré-visualização inline (só imagem raster e vídeo).
+ * Detects a file's real type from its "magic bytes" (binary signature),
+ * instead of trusting the extension or the Content-Type the browser sent.
+ * This is used to decide the real Content-Type to serve and whether a file
+ * can have an inline preview (raster images and video only).
  *
- * Um ficheiro cuja extensão diz ".png" mas cujos bytes não correspondem a
- * PNG nunca é tratado como imagem — evita o clássico truque de disfarçar
- * HTML/SVG com script embutido como se fosse uma imagem inofensiva.
+ * A file whose extension says ".png" but whose bytes don't match PNG is
+ * never treated as an image — avoids the classic trick of disguising
+ * HTML/SVG with an embedded script as a harmless-looking image.
  */
 
 const path = require('path');
 
-// SVG é sempre excluído de preview inline (pode conter <script>), mesmo
-// sendo XML válido — ver requisito de segurança #17.
+// SVG is always excluded from inline preview (it can contain <script>),
+// even though it's valid XML — see security requirement #17.
 const EXT_MIME_FALLBACK = new Map([
   ['.txt', 'text/plain'],
   ['.md', 'text/markdown'],
@@ -49,14 +49,14 @@ function asciiAt(buf, offset, len) {
 }
 
 /**
- * @param {Buffer} buf primeiros bytes do ficheiro (>= 4096 recomendado)
- * @param {string} originalName nome original enviado pelo cliente (só para desempate/label)
+ * @param {Buffer} buf file's first bytes (>= 4096 recommended)
+ * @param {string} originalName original name sent by the client (tie-break/label only)
  * @returns {{ mime: string, kind: 'image'|'video'|'audio'|'pdf'|'ooxml'|'legacy-office'|'zip'|'other', ext: string, family: string }}
  */
 function sniff(buf, originalName) {
   const ext = path.extname(originalName || '').toLowerCase();
 
-  // Imagens raster
+  // Raster images
   if (matches(buf, 0, [0xff, 0xd8, 0xff])) {
     return { mime: 'image/jpeg', kind: 'image', ext: '.jpg', family: 'image' };
   }
@@ -73,7 +73,7 @@ function sniff(buf, originalName) {
     return { mime: 'image/bmp', kind: 'image', ext: '.bmp', family: 'image' };
   }
 
-  // SVG (texto, nunca renderizado inline mesmo sendo imagem)
+  // SVG (text, never rendered inline even though it's an image)
   const head = buf.slice(0, 512).toString('utf8').trim().toLowerCase();
   if (ext === '.svg' && (head.startsWith('<?xml') || head.startsWith('<svg'))) {
     return { mime: 'image/svg+xml', kind: 'other', ext: '.svg', family: 'svg' };
@@ -84,7 +84,7 @@ function sniff(buf, originalName) {
     return { mime: 'application/pdf', kind: 'pdf', ext: '.pdf', family: 'pdf' };
   }
 
-  // Vídeo: contentor MP4/MOV (ftyp box)
+  // Video: MP4/MOV container (ftyp box)
   if (asciiAt(buf, 4, 4) === 'ftyp') {
     return { mime: 'video/mp4', kind: 'video', ext: ext === '.mov' ? '.mov' : '.mp4', family: 'video' };
   }
@@ -97,7 +97,7 @@ function sniff(buf, originalName) {
     return { mime: 'video/x-msvideo', kind: 'video', ext: '.avi', family: 'video' };
   }
 
-  // Áudio
+  // Audio
   if (asciiAt(buf, 0, 4) === 'RIFF' && asciiAt(buf, 8, 4) === 'WAVE') {
     return { mime: 'audio/wav', kind: 'audio', ext: '.wav', family: 'audio' };
   }
@@ -111,7 +111,7 @@ function sniff(buf, originalName) {
     return { mime: 'audio/flac', kind: 'audio', ext: '.flac', family: 'audio' };
   }
 
-  // ZIP / OOXML (docx, xlsx, pptx, odt...) / zip genérico
+  // ZIP / OOXML (docx, xlsx, pptx, odt...) / generic zip
   if (matches(buf, 0, [0x50, 0x4b, 0x03, 0x04]) || matches(buf, 0, [0x50, 0x4b, 0x05, 0x06])) {
     if (OOXML_EXT.has(ext)) {
       return { mime: EXT_MIME_FALLBACK.get(ext), kind: 'ooxml', ext, family: 'zip' };
@@ -119,13 +119,13 @@ function sniff(buf, originalName) {
     return { mime: 'application/zip', kind: 'zip', ext: ext === '.zip' ? '.zip' : '.zip', family: 'zip' };
   }
 
-  // Office legado (OLE2 Compound File): .doc, .xls, .ppt
+  // Legacy Office (OLE2 Compound File): .doc, .xls, .ppt
   if (matches(buf, 0, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
     return { mime: EXT_MIME_FALLBACK.get(ext) || 'application/x-ole-storage', kind: 'legacy-office', ext: ext || '.doc', family: 'ole' };
   }
 
-  // Fallback: texto simples ou binário genérico — mantém-se, servido como
-  // 'other' (download forçado), nunca com preview inline.
+  // Fallback: plain text or generic binary — kept as-is, served as
+  // 'other' (forced download), never with an inline preview.
   const fallbackMime = EXT_MIME_FALLBACK.get(ext) || 'application/octet-stream';
   return { mime: fallbackMime, kind: 'other', ext: ext || '', family: 'other' };
 }

@@ -15,12 +15,12 @@ const cookieBaseOpts = {
   path: '/',
 };
 
-/** Comparação em tempo constante para evitar timing attacks na password do site. */
+/** Constant-time comparison to avoid timing attacks on the site password. */
 function safeCompare(a, b) {
   const bufA = Buffer.from(String(a));
   const bufB = Buffer.from(String(b));
   if (bufA.length !== bufB.length) {
-    // Ainda assim faz um compare de tamanho fixo para não vazar o comprimento por timing.
+    // Still does a fixed-size compare so the length isn't leaked via timing.
     crypto.timingSafeEqual(bufA, bufA);
     return false;
   }
@@ -44,24 +44,24 @@ function clearSiteAuthCookie(res) {
   res.clearCookie(SITE_COOKIE, cookieBaseOpts);
 }
 
-/** Middleware: bloqueia páginas HTML se a password global do site não foi validada. */
+/** Middleware: blocks HTML pages if the site-wide password hasn't been validated. */
 function siteAuthPageGate(req, res, next) {
   if (isSiteAuthed(req)) return next();
   const next_ = encodeURIComponent(req.originalUrl || '/');
   res.redirect(`/login?next=${next_}`);
 }
 
-/** Middleware: bloqueia chamadas de API (resposta JSON) se a password global não foi validada. */
+/** Middleware: blocks API calls (JSON response) if the site-wide password hasn't been validated. */
 function siteAuthApiGate(req, res, next) {
   if (isSiteAuthed(req)) return next();
   res.status(401).json({ error: 'site_auth_required' });
 }
 
-// --- CSRF (padrão double-submit cookie) ---
-// O cookie fp_csrf NÃO é HttpOnly de propósito: o JS do frontend lê o seu
-// valor e reenvia-o no header X-CSRF-Token em cada pedido de escrita. Um
-// site atacante não consegue ler este cookie (same-origin policy) nem
-// adivinhar o valor, por isso não consegue forjar o header.
+// --- CSRF (double-submit cookie pattern) ---
+// The fp_csrf cookie is deliberately NOT HttpOnly: the frontend JS reads
+// its value and sends it back in the X-CSRF-Token header on every write
+// request. An attacking site can't read this cookie (same-origin policy)
+// or guess its value, so it can't forge the header.
 function ensureCsrfCookie(req, res, next) {
   if (!req.cookies || !req.cookies[CSRF_COOKIE]) {
     const token = crypto.randomBytes(32).toString('hex');
@@ -82,7 +82,7 @@ function csrfProtection(req, res, next) {
   next();
 }
 
-// --- Password por pad ---
+// --- Per-pad password ---
 function hashPadPassword(password) {
   return bcrypt.hashSync(password, 10);
 }
@@ -105,7 +105,7 @@ function getUnlockedSet(req) {
   try {
     const arr = JSON.parse(raw);
     if (Array.isArray(arr)) return new Set(arr);
-  } catch (_) { /* cookie corrompido ou adulterado: ignora */ }
+  } catch (_) { /* corrupted or tampered cookie: ignore */ }
   return new Set();
 }
 
@@ -117,7 +117,7 @@ function isPadUnlocked(req, padId, pad) {
 function markPadUnlocked(req, res, padId) {
   const set = getUnlockedSet(req);
   set.add(padHash(padId));
-  // Limite defensivo para o cookie não crescer sem controlo.
+  // Defensive cap so the cookie doesn't grow unbounded.
   const arr = Array.from(set).slice(-200);
   res.cookie(UNLOCKED_COOKIE, JSON.stringify(arr), { ...cookieBaseOpts, signed: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
 }

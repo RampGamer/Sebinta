@@ -2,16 +2,16 @@ package main
 
 import "net/http"
 
-// CSP restritiva — mesmas diretivas que server/middleware/security.js
-// (nada de CDNs externos: os assets de vendor já não existem, tudo o que
-// resta é local). Mais os cabeçalhos de reforço que o helmet aplicava por
-// omissão no lado Node.
+// Restrictive CSP — same directives as server/middleware/security.js
+// (no external CDNs: the vendor assets don't exist anymore, everything
+// left is local). Plus the hardening headers helmet applied by default on
+// the Node side.
 const csp = "default-src 'self'; " +
 	"script-src 'self'; " +
 	"style-src 'self' 'unsafe-inline'; " +
 	"img-src 'self' blob: data:; " +
 	"media-src 'self' blob:; " +
-	"connect-src 'self' ws: wss: https://api.github.com; " + // downloads na landing: lê releases/latest
+	"connect-src 'self' ws: wss: https://api.github.com; " + // landing downloads: reads releases/latest
 	"font-src 'self'; " +
 	"object-src 'none'; " +
 	"base-uri 'none'; " +

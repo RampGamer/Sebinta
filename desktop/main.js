@@ -1,20 +1,19 @@
 'use strict';
 
 /*
- * Processo principal do Electron. A janela principal carrega uma "shell"
- * própria (renderer/shell.html) com uma faixa de separadores estilo
- * browser — cada separador é um <webview> a apontar para um pad do mesmo
- * servidor Sebinta (mesma sessão/cookies/WebSocket que a versão web, mas
- * várias abertas ao mesmo tempo numa só janela). O botão ⚙, no canto
- * esquerdo da faixa, abre a janela de definições para trocar de servidor —
- * é uma definição da janela, não de um pad, por isso não vive dentro de
- * nenhum separador.
+ * Electron main process. The main window loads its own "shell"
+ * (renderer/shell.html) with a browser-style tab strip — each tab is a
+ * <webview> pointing at a pad on the same Sebinta server (same
+ * session/cookies/WebSocket as the web version, just several open at once
+ * in a single window). The ⚙ button, on the left of the strip, opens the
+ * settings window to switch servers — it's a window-level setting, not a
+ * pad-level one, so it doesn't live inside any tab.
  *
- * A única coisa que este processo acrescenta à interface web é o handler
- * IPC 'sebinta:clean', chamado pelo preload de cada separador
- * (webview-preload.js) quando o utilizador envia um ficheiro, para limpar
- * Office/PDF localmente antes do upload seguir para o servidor (ver
- * clean/office.js, clean/pdf.js, clean/detectDlp.js).
+ * The only thing this process adds on top of the web interface is the
+ * 'sebinta:clean' IPC handler, called by each tab's preload
+ * (webview-preload.js) when the user sends a file, to clean Office/PDF
+ * locally before the upload continues to the server (see clean/office.js,
+ * clean/pdf.js, clean/detectDlp.js).
  */
 
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
@@ -45,8 +44,8 @@ function saveConfig(cfg) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 
-// Sem menu nativo (File/Edit/View) — não fazia sentido numa app que é só
-// uma janela do pad; "Mudar servidor" é o botão ⚙ na shell.
+// No native menu (File/Edit/View) — didn't make sense for an app that's
+// just a pad window; "Change server" is the ⚙ button in the shell.
 Menu.setApplicationMenu(null);
 
 function createMainWindow() {
@@ -64,9 +63,9 @@ function createMainWindow() {
     },
   });
 
-  // Cada <webview> pede o seu próprio preload/webPreferences ao anexar —
-  // nunca confiamos no que a shell (ou, pior, um separador comprometido)
-  // declarou: forçamos sempre o mesmo preload isolado e sem Node.
+  // Each <webview> requests its own preload/webPreferences on attach — we
+  // never trust what the shell (or worse, a compromised tab) declared: we
+  // always force the same isolated, Node-free preload.
   mainWindow.webContents.on('will-attach-webview', (event, webPreferences) => {
     delete webPreferences.preloadURL;
     webPreferences.preload = WEBVIEW_PRELOAD;
@@ -114,8 +113,8 @@ ipcMain.handle('sebinta:save-server-url', (event, url) => {
 
 ipcMain.on('sebinta:open-settings', () => openSettingsWindow());
 
-// Estado dos separadores (caminhos abertos + qual está ativo), gravado pela
-// shell a cada alteração para reabrir tal como ficou.
+// Tab state (open paths + which one is active), saved by the shell on
+// every change so it reopens exactly as it was left.
 ipcMain.handle('sebinta:get-tabs', () => {
   const cfg = loadConfig();
   return { tabs: cfg.tabs || [], activeIndex: cfg.activeTabIndex || 0 };
@@ -125,8 +124,8 @@ ipcMain.handle('sebinta:save-tabs', (event, { tabs, activeIndex }) => {
   saveConfig({ ...loadConfig(), tabs, activeTabIndex: activeIndex });
 });
 
-// Chamado pelo preload de cada separador quando um ficheiro está prestes a
-// ser enviado. Nunca contacta a rede — só lê os bytes recebidos por IPC.
+// Called by each tab's preload when a file is about to be uploaded. Never
+// touches the network — only reads the bytes received over IPC.
 ipcMain.handle('sebinta:clean', async (event, { name, buffer, cleanEnabled }) => {
   const ext = path.extname(String(name || '')).toLowerCase();
   const kind = CLEANABLE_EXT[ext];
@@ -149,7 +148,7 @@ ipcMain.handle('sebinta:clean', async (event, { name, buffer, cleanEnabled }) =>
       return { cleaned: true, forced, buffer: new Uint8Array(cleaned), removed };
     }
     const cleaned = await cleanPdf(inputBuffer);
-    return { cleaned: true, forced, buffer: new Uint8Array(cleaned), removed: ['Metadados do PDF (Info + XMP)'] };
+    return { cleaned: true, forced, buffer: new Uint8Array(cleaned), removed: ['PDF metadata (Info + XMP)'] };
   } catch (err) {
     return { cleaned: false, forced, error: err.message };
   }

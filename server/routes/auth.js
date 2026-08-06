@@ -15,8 +15,8 @@ router.get('/status', (req, res) => {
   });
 });
 
-// Nota: a password nunca é escrita em logs (nem sequer nos logs de acesso,
-// ver server/index.js, que regista apenas método+caminho, nunca o corpo).
+// Note: the password is never written to logs (not even in access logs,
+// see server/index.js, which only logs method+path, never the body).
 router.post('/login', loginLimiter, auth.csrfProtection, express.json({ limit: '2kb' }), (req, res) => {
   if (!auth.siteAuthEnabled()) {
     return res.json({ ok: true });

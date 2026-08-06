@@ -6,7 +6,7 @@ const path = require('path');
 const http = require('http');
 
 const config = require('./config');
-require('./db'); // garante que a base de dados e as pastas existem antes de tudo o resto
+require('./db'); // makes sure the database and folders exist before anything else
 const auth = require('./auth');
 const { securityHeaders } = require('./middleware/security');
 const authRoutes = require('./routes/auth');
@@ -25,8 +25,8 @@ app.use(securityHeaders);
 app.use(cookieParser(config.cookieSecret));
 app.use(auth.ensureCsrfCookie);
 
-// Log minimo: método + caminho apenas. Nunca corpo, query de password, ou
-// cookies — ver requisito de segurança #23 (logs sem conteúdo sensível).
+// Minimal log: method + path only. Never the body, password query strings,
+// or cookies — see security requirement #23 (logs with no sensitive content).
 app.use((req, res, next) => {
   if (!req.path.startsWith('/css') && !req.path.startsWith('/js') && !req.path.startsWith('/fonts')) {
     console.log(`${req.method} ${req.path}`);
@@ -34,16 +34,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Healthcheck do Docker — sem gate de password, sem informação sensível.
+// Docker healthcheck — no password gate, no sensitive information.
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Recursos estáticos (CSS/JS/vendor) — sempre acessíveis, necessários mesmo
-// para desenhar o ecrã de password.
+// Static assets (CSS/JS/vendor) — always reachable, needed even to render
+// the password screen.
 app.use('/css', express.static(path.join(PUBLIC_DIR, 'css'), { index: false, maxAge: '1h' }));
 app.use('/js', express.static(path.join(PUBLIC_DIR, 'js'), { index: false, maxAge: '1h' }));
 app.use('/fonts', express.static(path.join(PUBLIC_DIR, 'fonts'), { index: false, maxAge: '1h' }));
 
-// Ecrã de password do site — sempre acessível (é o próprio gate).
+// Site password screen — always reachable (it's the gate itself).
 app.get('/login', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
 });
@@ -57,19 +57,19 @@ app.use('/api/auth', authRoutes);
 app.use('/api/pad', auth.siteAuthApiGate, padRoutes);
 app.use('/api/files', auth.siteAuthApiGate, fileRoutes);
 
-// 404 dedicado para a API (evita cair no catch-all de páginas HTML abaixo).
+// Dedicated 404 for the API (avoids falling through to the HTML catch-all below).
 app.use('/api', (req, res) => res.status(404).json({ error: 'not_found' }));
 
-// Qualquer outro caminho é um pad: cria/abre a página do pad em SPA. A
-// validação do próprio nome do pad acontece do lado do cliente ao chamar a
-// API (GET /api/pad?id=...), que usa a mesma normalizePadId().
+// Any other path is a pad: creates/opens the pad page as an SPA. Validating
+// the pad name itself happens client-side when it calls the API
+// (GET /api/pad?id=...), which uses the same normalizePadId().
 app.get('*', auth.siteAuthPageGate, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'pad.html'));
 });
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error('Erro não tratado:', err.message);
+  console.error('Unhandled error:', err.message);
   if (res.headersSent) return next(err);
   res.status(500).json({ error: 'internal_error' });
 });
@@ -79,8 +79,8 @@ wsModule.attach(server);
 cleanup.start();
 
 server.listen(config.port, () => {
-  console.log(`Sebinta a correr na porta ${config.port} (env=${config.nodeEnv})`);
-  console.log(`Password do site: ${auth.siteAuthEnabled() ? 'ativa' : 'desativada'}`);
+  console.log(`Sebinta running on port ${config.port} (env=${config.nodeEnv})`);
+  console.log(`Site password: ${auth.siteAuthEnabled() ? 'enabled' : 'disabled'}`);
 });
 
 module.exports = server;

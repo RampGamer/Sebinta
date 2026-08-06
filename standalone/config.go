@@ -11,10 +11,10 @@ import (
 	"strings"
 )
 
-// loadDotEnv lê um ficheiro .env simples (KEY=VALUE por linha, '#' para
-// comentários) sem depender de nenhuma biblioteca externa. Nunca substitui
-// uma variável de ambiente já definida no processo — mesmo comportamento do
-// pacote "dotenv" usado pelo servidor Node (server/config.js).
+// loadDotEnv reads a simple .env file (KEY=VALUE per line, '#' for
+// comments) with no external library dependency. Never overrides an
+// environment variable already set in the process — same behavior as the
+// "dotenv" package used by the Node server (server/config.js).
 func loadDotEnv(path string) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -94,7 +94,7 @@ func envBool(name string, fallback bool) bool {
 func randomHex(n int) string {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
-		panic(err) // sem entropia disponível — sem isto não há como assinar cookies em segurança
+		panic(err) // no entropy available — without this there's no secure way to sign cookies
 	}
 	return hex.EncodeToString(b)
 }
@@ -137,7 +137,7 @@ func loadConfig() *Config {
 		port = "3000"
 	}
 	if *portFlag != "" {
-		port = *portFlag // --port ganha a $PORT/.env — a intenção explícita na linha de comandos deve vencer
+		port = *portFlag // --port beats $PORT/.env — explicit command-line intent should win
 	}
 
 	maxFileSizeMB := int64(envInt("MAX_FILE_SIZE_MB", 500))

@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// Deteta o tipo real de um ficheiro pelos magic bytes, em vez de confiar na
-// extensão ou no Content-Type enviado pelo browser. Porta 1:1 de
+// Detects a file's real type from its magic bytes, instead of trusting the
+// extension or the Content-Type sent by the browser. 1:1 port of
 // server/services/fileType.js.
 
 type Sniffed struct {

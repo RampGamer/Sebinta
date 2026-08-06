@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# ---- Fase 1: instala dependências Node (inclui compilação nativa do better-sqlite3) ----
+# ---- Stage 1: install Node dependencies (includes native build of better-sqlite3) ----
 FROM node:20-bookworm-slim AS build
 WORKDIR /app
 RUN apt-get update \
@@ -11,11 +11,11 @@ RUN npm ci --omit=dev
 COPY server ./server
 COPY public ./public
 
-# ---- Fase 2: imagem final, só com o runtime necessário ----
+# ---- Stage 2: final image, only the runtime it needs ----
 FROM node:20-bookworm-slim
 WORKDIR /app
 
-# Sem limpeza de metadados no servidor — só curl para o healthcheck.
+# No metadata cleaning on the server — just curl for the healthcheck.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \

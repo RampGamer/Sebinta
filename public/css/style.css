@@ -182,9 +182,9 @@ header.topbar {
 .topbar .actions { grid-column: 3; justify-self: end; display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 /* --- Main layout --- */
-/* Envolve o header+main; por omissão é transparente (mesmo comportamento
-   flex que tinham como filhos diretos do body) — só o tema "caderno" lhe
-   dá aspeto de cartão (ver mais abaixo). */
+/* Wraps header+main; transparent by default (same flex behavior they had
+   as direct children of body) — only the "notebook" theme gives it a
+   card-like look (see further below). */
 #app-frame {
   flex: 1;
   display: flex;
@@ -197,9 +197,8 @@ main {
   display: flex;
   flex-direction: column;
 }
-/* main {display:flex} (regra de autor) tem prioridade sobre o [hidden] da
-   folha de estilos do browser (só UA) — sem isto o "hidden" não escondia
-   nada. */
+/* main {display:flex} (author rule) beats the browser stylesheet's
+   [hidden] (UA-only) — without this, "hidden" wasn't hiding anything. */
 #pad-header[hidden], #pad-main[hidden] { display: none; }
 
 #editor {
@@ -420,7 +419,7 @@ footer.hint {
   .file-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 
-/* --- Página de aterragem (raiz "/", sem pad escolhido) --- */
+/* --- Landing page (root "/", no pad chosen) --- */
 .landing {
   flex: 1;
   display: flex;
@@ -467,7 +466,7 @@ footer.hint {
   gap: 2rem;
 }
 
-/* --- Downloads (Cliente / Servidor) na página de aterragem --- */
+/* --- Downloads (Client / Server) on the landing page --- */
 .downloads { width: 100%; }
 .downloads .release-tag {
   text-align: center;
@@ -538,7 +537,7 @@ footer.hint {
   .dl-group { flex: 1 1 100%; max-width: 320px; }
 }
 
-/* --- Lightbox: pré-visualização de imagem em ecrã inteiro --- */
+/* --- Lightbox: full-screen image preview --- */
 .lightbox {
   position: fixed;
   inset: 0;
@@ -584,10 +583,10 @@ footer.hint {
 .file-card .preview { cursor: pointer; }
 
 /* =========================================================================
-   Easter egg: tema "caderno" — clicar no logo troca o visual todo (ver
-   btn-brand-logo em app.js). Reaproveita as mesmas fontes/paleta do mockup
-   de design em estilo caderno/colagem, agora aplicadas aos elementos reais
-   da página (não há markup extra: tudo aqui é reskin via CSS).
+   Easter egg: "notebook" theme — clicking the logo swaps the whole look
+   (see btn-brand-logo in app.js). Reuses the same fonts/palette from the
+   notebook/collage-style design mockup, now applied to the page's real
+   elements (no extra markup: everything here is a reskin via CSS).
    ========================================================================= */
 @font-face {
   font-family: 'Caveat';
@@ -632,8 +631,8 @@ body.theme-notebook {
     linear-gradient(180deg, var(--nb-desk), var(--nb-desk-2));
 }
 
-/* A "folha" flutua centrada sobre a secretária, com espiral e sombra —
-   mesma composição do mockup, não só as cores. */
+/* The "sheet" floats centered over the desk, with a spiral and shadow —
+   same composition as the mockup, not just the colors. */
 body.theme-notebook #app-frame {
   width: 100%;
   overflow: hidden;
