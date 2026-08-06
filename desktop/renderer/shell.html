@@ -75,6 +75,76 @@
   #tab-views { flex: 1; display: flex; min-height: 0; }
   .tab-view { flex: 1; display: none; min-height: 0; }
   .tab-view webview { width: 100%; height: 100%; display: flex; }
+
+  /* ---------- tema "caderno": segue o easter egg da página ativa
+     (ver btn-brand-logo em style.css e o listener 'ipc-message' em
+     shell.js) — cromada da janela também vira papel/post-its. ---------- */
+  @font-face {
+    font-family: 'Caveat';
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url(../assets/fonts/caveat-700.ttf) format('truetype');
+  }
+  @font-face {
+    font-family: 'Permanent Marker';
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    src: url(../assets/fonts/permanent-marker.ttf) format('truetype');
+  }
+
+  body.theme-notebook {
+    --nb-desk: #1a1e28;
+    --nb-ink: #23273a;
+    --nb-ink-soft: #4a4f6b;
+    --nb-highlight: #f3cf4e;
+    --nb-margin: #bb4f3b;
+    --nb-sticky-yellow: #f4dd86;
+    --nb-sticky-mint: #a7d6c4;
+    --nb-sticky-pink: #f0b6bd;
+    --nb-font-marker: 'Permanent Marker', cursive;
+    --nb-font-hand: 'Caveat', cursive;
+    background: var(--nb-desk);
+  }
+  body.theme-notebook .window-chrome {
+    background: var(--nb-desk);
+    border-bottom: 2px dashed rgba(120, 150, 200, 0.35);
+  }
+  body.theme-notebook .host-btn {
+    border-right: none;
+    color: #9aa2b0;
+    font-family: var(--nb-font-marker);
+  }
+  body.theme-notebook .host-btn:hover { color: var(--nb-highlight); background: rgba(255,255,255,0.06); }
+
+  body.theme-notebook .tab {
+    font-family: var(--nb-font-hand);
+    font-weight: 700;
+    font-size: 1rem;
+    background: var(--nb-sticky-yellow);
+    color: var(--nb-ink);
+    border: none;
+    opacity: 0.7;
+    filter: saturate(0.7);
+  }
+  body.theme-notebook .tab:nth-child(3n+2) { background: var(--nb-sticky-mint); }
+  body.theme-notebook .tab:nth-child(3n+3) { background: var(--nb-sticky-pink); }
+  body.theme-notebook .tab:hover { opacity: 0.9; }
+  body.theme-notebook .tab.active {
+    opacity: 1;
+    filter: none;
+    box-shadow: 0 -5px 10px rgba(0,0,0,0.25);
+  }
+  body.theme-notebook .tab .dot.loading { background: var(--nb-ink-soft); }
+  body.theme-notebook .tab .close { color: var(--nb-ink-soft); }
+  body.theme-notebook .tab .close:hover { background: var(--nb-margin); color: #fff; }
+  body.theme-notebook .tab-new {
+    border: 2px dashed rgba(154, 162, 176, 0.5);
+    color: #9aa2b0;
+    font-family: var(--nb-font-marker);
+  }
+  body.theme-notebook .tab-new:hover { border-color: var(--nb-highlight); color: var(--nb-highlight); background: transparent; }
 </style>
 </head>
 <body>

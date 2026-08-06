@@ -549,18 +549,14 @@ body.theme-notebook {
   background:
     radial-gradient(ellipse at 30% -10%, rgba(255,255,255,0.05), transparent 55%),
     linear-gradient(180deg, var(--nb-desk), var(--nb-desk-2));
-  padding: clamp(1.2rem, 4vw, 2.5rem) clamp(1rem, 3vw, 2rem) 0;
 }
 
 /* A "folha" flutua centrada sobre a secretária, com espiral e sombra —
    mesma composição do mockup, não só as cores. */
 body.theme-notebook #app-frame {
-  width: min(1040px, 100%);
-  margin: 0 auto;
-  border-radius: 14px;
+  width: 100%;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 30px 70px -20px rgba(0,0,0,0.65), 0 10px 25px -12px rgba(0,0,0,0.5);
 }
 body.theme-notebook #app-frame::before {
   content: "";
