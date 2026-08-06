@@ -78,6 +78,7 @@ Summary of today's work on Sebinta (formerly Filepad), from the rebrand through 
 | `v1.8.3` | Full repository translated to English (code comments, CLI, logs, config files, changelog) |
 | `v1.8.4` | Second translation pass (accent-only check had missed unaccented Portuguese); GitHub repo description/topics set in English |
 | `v1.8.5` | `--tunnel-token` flag on the standalone server, for a fixed custom domain without a `.env` file |
+| `v1.8.6` | ANSI colors now work in the native Windows console (`cmd.exe`/legacy PowerShell); fixed the unlock prompt flashing right after setting a pad password; 5-failed-attempts/30s rate limit on pad-password guessing |
 
 Each release includes: standalone Go server (`sebinta-server-vX.Y.Z-*`, 4 platforms), metadata-cleaning CLI (`sebinta-clean-vX.Y.Z-*`, 4 platforms), and Electron desktop app (`Sebinta-desktop-vX.Y.Z-*`: AppImage, portable `.exe`, macOS x64/arm64 `.zip`), plus a `SHA256SUMS.txt`.
 
