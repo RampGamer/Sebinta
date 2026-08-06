@@ -22,7 +22,7 @@ Same variables for Docker and the standalone binary (`.env` next to either).
 
 | Variable | Default | Notes |
 |---|---|---|
-| `TUNNEL_TOKEN` | — | Fixed domain. Without it: random Quick Tunnel link. |
+| `TUNNEL_TOKEN` | — | Fixed domain. Without it: random Quick Tunnel link. Standalone binary also accepts `--tunnel-token`. |
 | `SITE_PASSWORD` | empty | Site-wide password. |
 | `MAX_FILE_SIZE_MB` | `500` | Per-file limit. |
 | `FILE_TTL_DAYS` | empty | Auto-delete files older than N days. |

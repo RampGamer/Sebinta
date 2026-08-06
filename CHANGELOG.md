@@ -48,6 +48,10 @@ Summary of today's work on Sebinta (formerly Filepad), from the rebrand through 
 - **README screenshots updated** (`docs/screenshots/landing.png`, `pad.png`, `desktop-app.png`) to reflect the English interface and the new downloads section.
 - **Fix: setting a password immediately locked out the person who set it.** The earlier fix (broadcasting on password set) had a race condition — the WebSocket message reached the author themselves before the browser applied the HTTP response's unlock cookie, and the `refresh()` that triggered saw them as locked right after setting the password. Fixed by reversing the order: the HTTP response (with the cookie) is always sent before the broadcast, in both servers.
 
+## `--tunnel-token` flag on the standalone server
+
+- The standalone binary could only get a Cloudflare named-tunnel token (for a fixed custom domain) via `TUNNEL_TOKEN`/`.env` — added `--tunnel-token`, mirroring `--port` (takes priority over the environment/`.env`). The domain itself isn't something the binary configures — it's tied to the tunnel token on Cloudflare's side (named tunnel + a "Public Hostname" route to your domain, set up once in the Cloudflare dashboard); the flag just makes it easy to pass that token in without a `.env` file. Verified end-to-end: passing a token via the flag reaches `cloudflared` correctly (confirmed by it rejecting a deliberately invalid test token with the expected error, instead of falling back to Quick Tunnel).
+
 ## Full repository translated to English
 
 - **Every remaining piece of Portuguese text translated**: code comments across the Node server, the standalone Go server, the CLI, the desktop app, and the frontend; CLI `--help`/usage text and error messages; server/CLI console/log output; config file comments (`.env.example`, `docker-compose.yml`, `start.sh`, `Dockerfile`, `.gitignore`); and this changelog itself. User-visible strings had already been translated in the previous entry — this pass covered what a developer browsing the source or running the tools from a terminal would see.
@@ -73,6 +77,7 @@ Summary of today's work on Sebinta (formerly Filepad), from the rebrand through 
 | `v1.8.2` | Web app and desktop app translated to English; fix for the password self-lockout; updated README screenshots |
 | `v1.8.3` | Full repository translated to English (code comments, CLI, logs, config files, changelog) |
 | `v1.8.4` | Second translation pass (accent-only check had missed unaccented Portuguese); GitHub repo description/topics set in English |
+| `v1.8.5` | `--tunnel-token` flag on the standalone server, for a fixed custom domain without a `.env` file |
 
 Each release includes: standalone Go server (`sebinta-server-vX.Y.Z-*`, 4 platforms), metadata-cleaning CLI (`sebinta-clean-vX.Y.Z-*`, 4 platforms), and Electron desktop app (`Sebinta-desktop-vX.Y.Z-*`: AppImage, portable `.exe`, macOS x64/arm64 `.zip`), plus a `SHA256SUMS.txt`.
 
