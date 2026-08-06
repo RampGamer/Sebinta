@@ -42,6 +42,12 @@ Resumo do trabalho feito hoje no Sebinta (antigo Filepad), da rebrand até às r
 - **`--port` no servidor standalone** — `./sebinta-server --port 8080` (prioridade sobre `PORT`/`.env`).
 - **Downloads da landing**: Cliente e Servidor deixaram de estar lado a lado — agora um por cima do outro — e os ícones ficaram bem maiores (quadrados, 22px→36px). Mantida a resolução em tempo real via API do GitHub (não um link estático para `releases/latest`, nem uma versão hardcoded no HTML) — os nomes dos binários incluem a versão, por isso só um link construído a partir da última release por API garante um download direto que não fica preso a uma versão antiga.
 
+## Site e app desktop traduzidos para inglês, e fix do auto-bloqueio da password
+
+- **Interface toda em inglês**: `public/pad.html`, `login.html`, `app.js`, `upload.js`, `login.js`, e a app desktop (`shell.html`, `shell.js`, `settings.html`) estavam todos em português desde o início do projeto — só o README principal e o CHANGELOG tinham sido tratados antes. Traduzido texto visível (botões, modais, toasts, títulos, placeholders); comentários de código ficam em português, propositadamente (não são visíveis a quem usa o site/app).
+- **Screenshots do README atualizados** (`docs/screenshots/landing.png`, `pad.png`, `desktop-app.png`) para refletirem a interface em inglês e a nova secção de downloads.
+- **Fix: definir uma password bloqueava logo quem a definiu.** A correção anterior (broadcast ao definir password) tinha uma condição de corrida — a mensagem via WebSocket chegava ao próprio autor antes do browser aplicar a cookie de desbloqueio da resposta HTTP, e o `refresh()` que isso disparava via-o como bloqueado imediatamente a seguir a definir a password. Corrigido invertendo a ordem: a resposta HTTP (com a cookie) é sempre enviada antes do broadcast, nos dois servidores.
+
 ## Releases publicadas
 
 | Versão | Destaques |
@@ -52,6 +58,7 @@ Resumo do trabalho feito hoje no Sebinta (antigo Filepad), da rebrand até às r
 | `v1.7.0` | Tema caderno a ocupar o ecrã todo; separadores do desktop sincronizados com o tema |
 | `v1.8.0` | Downloads (Cliente/Servidor) na landing; tema caderno mais legível; fix do "✕" das tabs; fix de CSP no tema; README simplificado |
 | `v1.8.1` | Fix do badge de password sem F5; fix do redirect para /login numa password errada; `--port` no standalone; downloads empilhados com ícones maiores |
+| `v1.8.2` | Site e app desktop traduzidos para inglês; fix do auto-bloqueio ao definir password; screenshots do README atualizados |
 
 Cada release inclui: servidor standalone em Go (`sebinta-server-vX.Y.Z-*`, 4 plataformas), CLI de limpeza de metadados (`sebinta-clean-vX.Y.Z-*`, 4 plataformas) e app desktop Electron (`Sebinta-desktop-vX.Y.Z-*`: AppImage, `.exe` portátil, `.zip` macOS x64/arm64), mais um `SHA256SUMS.txt`.
 

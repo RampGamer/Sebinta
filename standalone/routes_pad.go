@@ -157,8 +157,8 @@ func handlePadSetPassword(cfg *Config, db *sql.DB, hub *wsHub) func(http.Respons
 		_ = readJSONBody(r, 4*1024, &body)
 		if body.Password == "" {
 			_ = setPadPassword(db, padID, nil)
-			hub.broadcastPadChanged(padID, nil)
 			writeJSON(w, http.StatusOK, map[string]any{"ok": true, "hasPassword": false})
+			hub.broadcastPadChanged(padID, nil)
 			return
 		}
 		if len(body.Password) < 4 || len(body.Password) > 200 {
@@ -175,11 +175,14 @@ func handlePadSetPassword(cfg *Config, db *sql.DB, hub *wsHub) func(http.Respons
 			return
 		}
 		markPadUnlocked(cfg, w, r, padID)
-		// Without this, anyone else with the pad already open only sees the
-		// "Protected" badge (or gets locked out, if they lack the unlock
-		// cookie) after an F5.
-		hub.broadcastPadChanged(padID, nil)
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "hasPassword": true})
+		// Broadcast only after the response (which carries the unlock cookie)
+		// has been written — never before: the person who just set the
+		// password already has a WebSocket connection open on this pad, and
+		// if "changed" arrived first, the refresh() it triggers would still
+		// use the old cookie and see itself as locked, right after setting
+		// the password.
+		hub.broadcastPadChanged(padID, nil)
 	}
 }
 
