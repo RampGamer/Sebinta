@@ -40,6 +40,6 @@ func deleteStoredFile(cfg *Config, storedName string) {
 		return
 	}
 	if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-		log.Printf("falha ao apagar ficheiro do armazenamento: %v", err)
+		log.Printf("failed to delete file from storage: %v", err)
 	}
 }

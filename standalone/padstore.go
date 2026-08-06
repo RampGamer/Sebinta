@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// Segmentos reservados: nunca podem ser o pad (colidem com rotas da app).
-// Mesma lista que server/services/padStore.js.
+// Reserved segments: can never be the pad (they collide with app routes).
+// Same list as server/services/padStore.js.
 var reservedTopSegments = map[string]bool{
 	"api": true, "ws": true, "login": true, "logout": true, "health": true,
 	"css": true, "js": true, "fonts": true, "vendor": true, "favicon.ico": true,
@@ -17,8 +17,8 @@ var reservedTopSegments = map[string]bool{
 
 var padIDRe = regexp.MustCompile(`^[a-zA-Z0-9._~-]+(/[a-zA-Z0-9._~-]+)*$`)
 
-// normalizePadId espelha padStore.js: normaliza um caminho de URL como
-// identificador de pad, prevenindo path traversal e segmentos reservados.
+// normalizePadId mirrors padStore.js: normalizes a URL path as a pad
+// identifier, preventing path traversal and reserved segments.
 func normalizePadID(raw string) string {
 	p := strings.TrimSpace(raw)
 	p = strings.Trim(p, "/")

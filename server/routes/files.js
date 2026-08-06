@@ -17,7 +17,7 @@ const ws = require('../ws');
 
 const router = express.Router();
 
-// --- Multer: grava sempre primeiro na pasta de QUARENTENA, nunca no destino final. ---
+// --- Multer: always writes to the QUARANTINE folder first, never to the final destination. ---
 const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, config.quarantineDir),
   filename: (req, file, cb) => cb(null, crypto.randomUUID()),
@@ -29,10 +29,10 @@ const upload = multer({
 });
 
 function sanitizeOriginalName(name) {
-  const base = path.basename(String(name || 'ficheiro'));
+  const base = path.basename(String(name || 'file'));
   // eslint-disable-next-line no-control-regex
   const cleaned = base.replace(/[\x00-\x1f\x7f]/g, '').trim();
-  return (cleaned || 'ficheiro').slice(0, 255);
+  return (cleaned || 'file').slice(0, 255);
 }
 
 function contentDispositionHeader(disposition, filename) {

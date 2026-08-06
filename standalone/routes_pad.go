@@ -12,8 +12,8 @@ func fileToJSON(f *File) map[string]any {
 	}
 }
 
-// withPadID extrai e valida ?id=... antes de chamar o handler — equivalente
-// ao middleware requirePadId de server/routes/pad.js.
+// withPadID extracts and validates ?id=... before calling the handler —
+// equivalent to the requirePadId middleware in server/routes/pad.js.
 func withPadID(next func(w http.ResponseWriter, r *http.Request, padID string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		padID := normalizePadID(r.URL.Query().Get("id"))

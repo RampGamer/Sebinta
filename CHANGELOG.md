@@ -51,6 +51,14 @@ Summary of today's work on Sebinta (formerly Filepad), from the rebrand through 
 ## Full repository translated to English
 
 - **Every remaining piece of Portuguese text translated**: code comments across the Node server, the standalone Go server, the CLI, the desktop app, and the frontend; CLI `--help`/usage text and error messages; server/CLI console/log output; config file comments (`.env.example`, `docker-compose.yml`, `start.sh`, `Dockerfile`, `.gitignore`); and this changelog itself. User-visible strings had already been translated in the previous entry — this pass covered what a developer browsing the source or running the tools from a terminal would see.
+- **GitHub repo metadata**: the "About" description and topics (previously unset) are now in English too — separate from the README, set via repo settings.
+
+## Second translation pass: everything my accent-only check had missed
+
+- The first full-repo sweep only searched for accented characters, which missed a good chunk of Portuguese written without diacritics (`ficheiro`, `nao`, `sao`, `nunca`, `sempre`, `espelha`, section-header comments like `--- password do pad ---`, etc.). A second, broader sweep (comment-line function words + a larger unaccented word list) caught: `server/config.js` (entirely missed on the first pass), `standalone/padstore.go` (entirely missed), plus stray lines in `public/js/app.js`, `public/css/style.css`, `server/routes/files.js`, `server/services/storage.js`, `server/ws.js`, `standalone/routes_files.go`, `standalone/routes_pad.go`, `standalone/storage.go`, and `desktop/renderer/shell.js`.
+- Two of those were actually **user-visible**, not just comments: the fallback filename used when an upload has no usable name was the literal string `"ficheiro"` in both the Node and Go servers — now `"file"`.
+- Also translated the root and desktop `package.json` `description` fields, which had no diacritics either and so were also missed by the first pass.
+- Confirmed with three independent sweep methods (accented characters, comment-line Portuguese function words, and a broad unaccented word list) that no Portuguese text remains anywhere in the tracked repository.
 
 ## Published releases
 
@@ -64,6 +72,7 @@ Summary of today's work on Sebinta (formerly Filepad), from the rebrand through 
 | `v1.8.1` | Fix for the password badge needing F5; fix for the redirect to /login on a wrong password; `--port` on the standalone server; stacked downloads with bigger icons |
 | `v1.8.2` | Web app and desktop app translated to English; fix for the password self-lockout; updated README screenshots |
 | `v1.8.3` | Full repository translated to English (code comments, CLI, logs, config files, changelog) |
+| `v1.8.4` | Second translation pass (accent-only check had missed unaccented Portuguese); GitHub repo description/topics set in English |
 
 Each release includes: standalone Go server (`sebinta-server-vX.Y.Z-*`, 4 platforms), metadata-cleaning CLI (`sebinta-clean-vX.Y.Z-*`, 4 platforms), and Electron desktop app (`Sebinta-desktop-vX.Y.Z-*`: AppImage, portable `.exe`, macOS x64/arm64 `.zip`), plus a `SHA256SUMS.txt`.
 

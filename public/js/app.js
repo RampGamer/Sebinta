@@ -33,7 +33,7 @@
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((release) => {
         if (releaseTag && release.tag_name) {
-          releaseTag.textContent = ''; // textContent: nunca innerHTML, previne XSS
+          releaseTag.textContent = ''; // textContent: never innerHTML, prevents XSS
           releaseTag.append('Latest version: ');
           const b = document.createElement('b');
           b.textContent = release.tag_name;
@@ -152,7 +152,7 @@
   function toast(message, type) {
     const el = document.createElement('div');
     el.className = 'toast' + (type ? ' ' + type : '');
-    el.textContent = message; // textContent: nunca HTML, previne XSS
+    el.textContent = message; // textContent: never HTML, prevents XSS
     toastContainer.appendChild(el);
     setTimeout(() => el.remove(), 5000);
   }
@@ -185,7 +185,7 @@
     return res;
   }
 
-  // --- carregar / renderizar estado do pad ---
+  // --- load / render pad state ---
   async function refresh() {
     let res;
     try {
@@ -260,7 +260,7 @@
 
     const name = document.createElement('div');
     name.className = 'name';
-    name.textContent = file.name; // textContent: nunca innerHTML, previne XSS
+    name.textContent = file.name; // textContent: never innerHTML, prevents XSS
     name.title = file.name;
     meta.appendChild(name);
 
@@ -294,7 +294,7 @@
   function openLightbox(file) {
     lightboxImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/preview`);
     lightboxImg.alt = file.name;
-    lightboxName.textContent = file.name; // textContent: nunca innerHTML, previne XSS
+    lightboxName.textContent = file.name; // textContent: never innerHTML, prevents XSS
     lightboxDownload.onclick = () => {
       window.location.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/download`);
     };
@@ -318,7 +318,7 @@
     }
   }
 
-  // --- autosave do texto ---
+  // --- text autosave ---
   editor.addEventListener('input', () => {
     lastLocalEditAt = Date.now();
     setStatus('saving', 'saving…');
@@ -361,7 +361,7 @@
     }
   });
 
-  // --- password do pad ---
+  // --- pad password ---
   document.getElementById('btn-password').addEventListener('click', () => {
     passwordError.textContent = '';
     document.getElementById('new-password').value = '';
@@ -412,7 +412,7 @@
     }
   });
 
-  // --- tempo real: WebSocket com fallback de polling curto ---
+  // --- real-time: WebSocket with short-polling fallback ---
   function connectRealtime() {
     if (state.locked) return;
     stopPolling();

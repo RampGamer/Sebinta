@@ -427,8 +427,8 @@ footer.hint {
   justify-content: center;
   padding: 1.5rem;
 }
-/* mesmo problema do #pad-header[hidden] acima: display:flex (regra de
-   autor) ganha ao [hidden] da folha de estilos do browser. */
+/* same problem as #pad-header[hidden] above: display:flex (author rule)
+   beats the browser stylesheet's [hidden]. */
 .landing[hidden] { display: none; }
 .landing-card {
   width: 100%;
@@ -777,8 +777,8 @@ body.theme-notebook .files-head .upload-bar button.primary {
 body.theme-notebook .files-head .upload-bar button.primary:hover { background: rgba(255,255,255,0.85); }
 body.theme-notebook .files-head .upload-bar span { font-family: var(--nb-font-hand); font-size: 1.1rem !important; color: var(--nb-ink-soft) !important; }
 
-/* Barra de progresso de upload ("a enviar…") — sem isto ficava com o
-   painel escuro da UI base a flutuar sobre o papel, e letra pequena. */
+/* Upload progress bar ("uploading…") — without this it kept the base
+   UI's dark panel floating over the paper, with small text. */
 body.theme-notebook .upload-progress-list { gap: 0.7rem; }
 body.theme-notebook .upload-progress-item {
   background: rgba(255,255,255,0.5);
