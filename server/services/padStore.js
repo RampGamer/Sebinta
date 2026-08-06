@@ -5,7 +5,7 @@ const config = require('../config');
 
 // Segmentos reservados: nunca podem ser o pad (colidem com rotas da app).
 const RESERVED_TOP_SEGMENTS = new Set([
-  'api', 'ws', 'login', 'logout', 'health', 'css', 'js', 'vendor',
+  'api', 'ws', 'login', 'logout', 'health', 'css', 'js', 'fonts', 'vendor',
   'favicon.ico', 'robots.txt', 'uploads',
 ]);
 

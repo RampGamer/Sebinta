@@ -181,6 +181,16 @@ header.topbar {
 .topbar .actions { grid-column: 3; justify-self: end; display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 /* --- Main layout --- */
+/* Envolve o header+main; por omissão é transparente (mesmo comportamento
+   flex que tinham como filhos diretos do body) — só o tema "caderno" lhe
+   dá aspeto de cartão (ver mais abaixo). */
+#app-frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 main {
   flex: 1;
   display: flex;
@@ -532,50 +542,93 @@ body.theme-notebook {
   --nb-sticky-yellow: #f4dd86;
   --nb-sticky-mint: #a7d6c4;
   --nb-sticky-pink: #f0b6bd;
+  --nb-spiral: #9aa2b0;
   --nb-font-marker: 'Permanent Marker', cursive;
   --nb-font-hand: 'Caveat', cursive;
 
   background:
     radial-gradient(ellipse at 30% -10%, rgba(255,255,255,0.05), transparent 55%),
     linear-gradient(180deg, var(--nb-desk), var(--nb-desk-2));
+  padding: clamp(1.2rem, 4vw, 2.5rem) clamp(1rem, 3vw, 2rem) 0;
+}
+
+/* A "folha" flutua centrada sobre a secretária, com espiral e sombra —
+   mesma composição do mockup, não só as cores. */
+body.theme-notebook #app-frame {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 70px -20px rgba(0,0,0,0.65), 0 10px 25px -12px rgba(0,0,0,0.5);
+}
+body.theme-notebook #app-frame::before {
+  content: "";
+  position: absolute;
+  left: -18px; top: 28px; bottom: 28px; width: 36px;
+  background-image: radial-gradient(circle at center, var(--nb-desk-2) 0 7px, var(--nb-spiral) 7px 10px, transparent 10px);
+  background-repeat: repeat-y;
+  background-size: 36px 46px;
+  z-index: 3;
+  pointer-events: none;
 }
 
 body.theme-notebook header.topbar,
 body.theme-notebook main {
   font-family: var(--nb-font-hand);
+  padding-left: 2.4rem;
+  background: var(--nb-paper);
 }
+body.theme-notebook header.topbar { padding-right: 1rem; }
 
 body.theme-notebook header.topbar {
   background: var(--nb-paper);
   border-bottom: 2px dashed rgba(120, 150, 200, 0.5);
 }
 body.theme-notebook .pad-field {
+  position: relative;
   background: #a9c7e8;
   border: none;
   border-radius: 3px 3px 8px 8px;
 }
+body.theme-notebook .pad-field::before {
+  content: "";
+  position: absolute;
+  top: -10px; left: 14px;
+  width: 34px; height: 16px;
+  background: #4f9d93;
+  opacity: 0.85;
+  transform: rotate(-4deg);
+}
 body.theme-notebook .pad-field input[type="text"],
 body.theme-notebook .pad-field .folder-icon { color: var(--nb-ink); }
+body.theme-notebook .pad-field input[type="text"] { border-bottom: 2px dashed var(--nb-ink-soft); }
 body.theme-notebook .pad-field button { background: rgba(255,255,255,0.55); color: var(--nb-ink); }
 body.theme-notebook .pad-field button:hover { background: var(--nb-margin); color: #fff; }
+body.theme-notebook .pad-field button::after { content: " →"; }
 
 body.theme-notebook .topbar .status,
 body.theme-notebook .header-left { color: var(--nb-ink-soft); }
 
 body.theme-notebook .actions button {
   font-family: var(--nb-font-marker);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  background: transparent;
-  color: var(--accent);
-  border: 2px solid var(--accent);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  padding: 0.5rem 0.9rem;
+  border: 2.5px solid;
   border-radius: 6px;
-  transform: rotate(-2deg);
+  background: transparent;
+  opacity: 0.92;
+  mix-blend-mode: multiply;
+  transform: rotate(-3deg);
+  color: #33588a;
+  border-color: #33588a;
 }
-body.theme-notebook .actions button.danger { color: var(--nb-margin); border-color: var(--nb-margin); transform: rotate(2deg); }
+body.theme-notebook .actions button.danger { color: #a53d33; border-color: #a53d33; transform: rotate(2deg); }
 body.theme-notebook .actions button:hover { background: rgba(35, 39, 58, 0.08); }
 
-body.theme-notebook .brand-logo { font-family: var(--nb-font-marker); font-size: 1.55rem; color: var(--nb-ink); }
+body.theme-notebook .brand-logo { font-family: var(--nb-font-marker); font-size: 2.1rem; color: var(--nb-ink); }
+body.theme-notebook .brand-logo svg { width: 34px; height: 34px; }
 body.theme-notebook .brand-logo:hover { background: rgba(35, 39, 58, 0.08); }
 body.theme-notebook .brand-logo .bin { background: var(--nb-highlight); color: var(--nb-ink); padding: 0 0.08em; border-radius: 3px; }
 body.theme-notebook .brand-logo .logo-icon rect,
@@ -584,48 +637,59 @@ body.theme-notebook .brand-logo .logo-icon circle { fill: var(--nb-ink); }
 
 body.theme-notebook #editor {
   background:
-    linear-gradient(to right, transparent 0 2.55rem, var(--nb-margin) 2.55rem calc(2.55rem + 2px), transparent calc(2.55rem + 2px) 100%),
+    linear-gradient(to right, transparent 0 2.15rem, var(--nb-margin) 2.15rem calc(2.15rem + 2px), transparent calc(2.15rem + 2px) 100%),
     repeating-linear-gradient(var(--nb-paper) 0 33px, var(--nb-rule) 33px 34px);
   background-color: var(--nb-paper);
   color: var(--nb-ink);
   font-family: var(--nb-font-hand);
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   line-height: 34px;
-  padding-left: calc(2.55rem + 1rem);
+  padding-left: calc(2.15rem + 1rem);
 }
 
 body.theme-notebook section.files {
   background: var(--nb-paper);
   border-top: none;
-  position: relative;
-  padding-top: 2.5rem;
+  padding-left: 1.6rem;
 }
-body.theme-notebook section.files::before {
-  content: "";
-  position: absolute;
-  top: 0.85rem; left: 2rem; right: 2rem; height: 30px;
+body.theme-notebook .files-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 0.4rem 0 1.5rem;
+  padding: 0.55rem 1.2rem;
   background: var(--nb-highlight);
   transform: rotate(-0.4deg);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.22);
+  clip-path: polygon(
+    0% 18%, 1.5% 2%, 4% 24%, 7% 4%, 96% 0%, 98.5% 20%, 100% 6%,
+    100% 82%, 98.5% 98%, 96% 78%, 4% 100%, 1.5% 80%, 0% 96%
+  );
 }
-body.theme-notebook section.files h2 {
-  position: relative; z-index: 1;
+body.theme-notebook .files-head h2 {
   font-family: var(--nb-font-marker);
   color: var(--nb-ink);
   font-size: 0.85rem;
   text-transform: none;
   letter-spacing: normal;
-  padding-left: 0.4rem;
+  margin: 0;
 }
-body.theme-notebook .upload-bar button.primary {
+body.theme-notebook .files-head .upload-bar { margin: 0; gap: 0.5rem; }
+body.theme-notebook .files-head .upload-bar button.primary {
   font-family: var(--nb-font-hand);
   font-weight: 700;
-  font-size: 1rem;
-  background: var(--nb-highlight);
-  border-color: var(--nb-highlight);
+  font-size: 0.95rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.55);
+  border: 2px dashed var(--nb-ink);
   color: var(--nb-ink);
 }
-body.theme-notebook .upload-bar button.primary:hover { filter: brightness(0.95); }
+body.theme-notebook .files-head .upload-bar button.primary:hover { background: rgba(255,255,255,0.85); }
+body.theme-notebook .files-head .upload-bar span { font-family: var(--nb-font-hand); font-size: 0.95rem !important; color: var(--nb-ink-soft) !important; }
 
 body.theme-notebook .file-card {
   border: none;
@@ -638,9 +702,25 @@ body.theme-notebook .file-card .preview { background: rgba(35, 39, 58, 0.08); }
 body.theme-notebook .file-card .preview .icon { color: var(--nb-ink-soft); }
 body.theme-notebook .file-card .name { font-family: var(--nb-font-hand); font-size: 1.05rem; color: var(--nb-ink); }
 body.theme-notebook .file-card .size { color: var(--nb-ink-soft); }
+body.theme-notebook .file-card .row button {
+  font-family: var(--nb-font-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+  background: rgba(255,255,255,0.4);
+  border: 1px dashed var(--nb-ink-soft);
+  color: var(--nb-ink);
+}
+body.theme-notebook .file-card .row button:hover { background: rgba(255,255,255,0.7); }
 
 body.theme-notebook footer.hint {
   font-family: var(--nb-font-hand);
   font-size: 1.05rem;
   color: #8b93a8;
+  padding-top: 1.2rem;
+}
+
+@media (max-width: 640px) {
+  body.theme-notebook header.topbar,
+  body.theme-notebook main { padding-left: 1.8rem; }
+  body.theme-notebook #app-frame::before { left: -14px; width: 28px; background-size: 28px 40px; }
+  body.theme-notebook .brand-logo { font-size: 1.5rem; }
 }

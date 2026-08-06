@@ -24,6 +24,7 @@
   </div>
 </div>
 
+<div id="app-frame">
 <header class="topbar" id="pad-header">
   <div class="header-left">
     <form class="pad-field" id="form-pad-path" autocomplete="off">
@@ -59,16 +60,19 @@
   <textarea id="editor" placeholder="Escreve aqui… é guardado automaticamente." spellcheck="false"></textarea>
 
   <section class="files">
-    <h2>Ficheiros</h2>
-    <div class="upload-bar">
-      <button id="btn-choose-file" class="primary">📎 Escolher ficheiro</button>
-      <input type="file" id="file-input" multiple hidden>
-      <span style="color: var(--text-dim); font-size: 0.8rem;">ou arrasta ficheiros para a página, ou cola (Ctrl+V)</span>
+    <div class="files-head">
+      <h2>Ficheiros</h2>
+      <div class="upload-bar">
+        <button id="btn-choose-file" class="primary">📎 Escolher ficheiro</button>
+        <input type="file" id="file-input" multiple hidden>
+        <span style="color: var(--text-dim); font-size: 0.8rem;">ou arrasta ficheiros para a página, ou cola (Ctrl+V)</span>
+      </div>
     </div>
     <div class="upload-progress-list" id="upload-progress-list"></div>
     <div class="file-grid" id="file-grid"></div>
   </section>
 </main>
+</div>
 
 <footer class="hint">Sebinta — sem contas, sem histórico. O que apagares aqui, desaparece para sempre.</footer>
 

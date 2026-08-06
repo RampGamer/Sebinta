@@ -11,7 +11,7 @@ import (
 // Mesma lista que server/services/padStore.js.
 var reservedTopSegments = map[string]bool{
 	"api": true, "ws": true, "login": true, "logout": true, "health": true,
-	"css": true, "js": true, "vendor": true, "favicon.ico": true,
+	"css": true, "js": true, "fonts": true, "vendor": true, "favicon.ico": true,
 	"robots.txt": true, "uploads": true,
 }
 
