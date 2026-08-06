@@ -60,7 +60,16 @@
     activeId = id;
     tabs.forEach((t) => { t.viewEl.style.display = t.id === id ? 'flex' : 'none'; });
     renderStrip();
+    applyChromeTheme();
     scheduleSave();
+  }
+
+  // A cromada da janela (⚙ + separadores) segue o tema da página do
+  // separador ativo — cada webview avisa o seu tema via ipc-message (ver
+  // webview-preload.js), a chamada aqui só reflete o que já sabemos.
+  function applyChromeTheme() {
+    const active = tabs.find((t) => t.id === activeId);
+    document.body.classList.toggle('theme-notebook', !!active && active.theme === 'notebook');
   }
 
   function updatePadPathFromUrl(tab) {
@@ -86,11 +95,16 @@
     viewEl.appendChild(webview);
     tabViews.appendChild(viewEl);
 
-    const tab = { id, padPath: padPath || '', webview, viewEl, connected: false };
+    const tab = { id, padPath: padPath || '', webview, viewEl, connected: false, theme: 'sober' };
     webview.addEventListener('did-navigate', () => updatePadPathFromUrl(tab));
     webview.addEventListener('did-navigate-in-page', () => updatePadPathFromUrl(tab));
     webview.addEventListener('did-start-loading', () => { tab.connected = false; renderStrip(); });
     webview.addEventListener('dom-ready', () => { tab.connected = true; renderStrip(); });
+    webview.addEventListener('ipc-message', (event) => {
+      if (event.channel !== 'sebinta:theme') return;
+      tab.theme = event.args[0] === 'notebook' ? 'notebook' : 'sober';
+      if (tab.id === activeId) applyChromeTheme();
+    });
 
     tabs.push(tab);
     if (activate) switchTab(id); else renderStrip();

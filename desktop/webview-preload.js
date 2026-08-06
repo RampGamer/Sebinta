@@ -40,4 +40,18 @@ function injectUploadHook() {
   script.remove();
 }
 
-window.addEventListener('DOMContentLoaded', injectUploadHook);
+// Avisa a shell (janela principal) qual o tema ativo nesta página — para o
+// separador/⚙ na cromada da janela seguirem o mesmo estilo (ver
+// btn-brand-logo/theme-notebook em style.css e o listener 'ipc-message' em
+// shell.js). MutationObserver em vez de um evento custom: não precisa de
+// nenhuma alteração em app.js, reage a qualquer forma de a classe mudar.
+function reportTheme() {
+  const isNotebook = document.body.classList.contains('theme-notebook');
+  ipcRenderer.sendToHost('sebinta:theme', isNotebook ? 'notebook' : 'sober');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  injectUploadHook();
+  reportTheme();
+  new MutationObserver(reportTheme).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+});
