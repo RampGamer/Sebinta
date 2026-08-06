@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Sebinta</title>
@@ -16,19 +16,19 @@
     <div class="landing-card">
       <img class="landing-logo" src="/favicon.ico" alt="" aria-hidden="true">
       <h1>Sebinta</h1>
-      <p class="hint">Escolhe um nome para o teu pad — se já existir, abre-o; se não, é criado agora.</p>
+      <p class="hint">Pick a name for your pad — if it already exists, it opens; if not, it's created now.</p>
       <form id="form-landing" autocomplete="off">
-        <input type="text" id="landing-pad-name" placeholder="ex.: notas-do-projeto" autofocus required>
-        <button type="submit" class="primary">Abrir pad</button>
+        <input type="text" id="landing-pad-name" placeholder="e.g.: project-notes" autofocus required>
+        <button type="submit" class="primary">Open pad</button>
       </form>
-      <p class="hint">Podes usar <code>/</code> para organizar em pastas, ex.: <code>equipa/notas</code>.</p>
+      <p class="hint">You can use <code>/</code> to organize into folders, e.g.: <code>team/notes</code>.</p>
     </div>
 
     <div class="downloads" id="landing-downloads">
-      <p class="release-tag" id="dl-release-tag">A carregar última versão…</p>
+      <p class="release-tag" id="dl-release-tag">Loading latest version…</p>
       <div class="dl-groups">
         <div class="dl-group">
-          <h3>Cliente</h3>
+          <h3>Client</h3>
           <div class="dl-row">
             <a class="dl-tile" data-key="client-windows" href="https://github.com/RampGamer/Sebinta/releases/latest" target="_blank" rel="noopener" title="Windows">
               <svg class="ic" viewBox="0 0 4875 4875" aria-hidden="true"><path d="M0 0h2311v2310H0zm2564 0h2311v2310H2564zM0 2564h2311v2311H0zm2564 0h2311v2311H2564"/></svg>
@@ -45,7 +45,7 @@
               </a>
               <a class="dl-alt" data-key="client-macos-x64" href="https://github.com/RampGamer/Sebinta/releases/latest" target="_blank" rel="noopener">Intel</a>
             </div>
-            <a class="dl-tile" href="https://github.com/RampGamer/Sebinta" target="_blank" rel="noopener" title="Ver no GitHub">
+            <a class="dl-tile" href="https://github.com/RampGamer/Sebinta" target="_blank" rel="noopener" title="View on GitHub">
               <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
               <span class="lb">GitHub</span>
             </a>
@@ -53,7 +53,7 @@
         </div>
 
         <div class="dl-group">
-          <h3>Servidor</h3>
+          <h3>Server</h3>
           <div class="dl-row">
             <a class="dl-tile" data-key="server-windows" href="https://github.com/RampGamer/Sebinta/releases/latest" target="_blank" rel="noopener" title="Windows">
               <svg class="ic" viewBox="0 0 4875 4875" aria-hidden="true"><path d="M0 0h2311v2310H0zm2564 0h2311v2310H2564zM0 2564h2311v2311H0zm2564 0h2311v2311H2564"/></svg>
@@ -70,14 +70,14 @@
               </a>
               <a class="dl-alt" data-key="server-macos-x64" href="https://github.com/RampGamer/Sebinta/releases/latest" target="_blank" rel="noopener">Intel</a>
             </div>
-            <a class="dl-tile" href="https://github.com/RampGamer/Sebinta" target="_blank" rel="noopener" title="Ver no GitHub">
+            <a class="dl-tile" href="https://github.com/RampGamer/Sebinta" target="_blank" rel="noopener" title="View on GitHub">
               <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
               <span class="lb">GitHub</span>
             </a>
           </div>
         </div>
       </div>
-      <p class="footnote">Windows / Linux / macOS transferem diretamente da última <a href="https://github.com/RampGamer/Sebinta/releases/latest" target="_blank" rel="noopener">release no GitHub</a>. macOS é Apple Silicon por omissão — "Intel" por baixo para Mac mais antigos.</p>
+      <p class="footnote">Windows / Linux / macOS download directly from the latest <a href="https://github.com/RampGamer/Sebinta/releases/latest" target="_blank" rel="noopener">release on GitHub</a>. macOS defaults to Apple Silicon — "Intel" below for older Macs.</p>
     </div>
   </div>
 </div>
@@ -87,13 +87,13 @@
   <div class="header-left">
     <form class="pad-field" id="form-pad-path" autocomplete="off">
       <span class="folder-icon" aria-hidden="true">📂</span>
-      <input type="text" id="pad-path-input" spellcheck="false" aria-label="Caminho do pad">
-      <button type="submit">Ir</button>
+      <input type="text" id="pad-path-input" spellcheck="false" aria-label="Pad path">
+      <button type="submit">Go</button>
     </form>
-    <span class="protected-badge" id="protected-badge" title="Este pad está protegido por password" hidden>🔒 Protegido</span>
+    <span class="protected-badge" id="protected-badge" title="This pad is password-protected" hidden>🔒 Protected</span>
     <div class="status">
       <span class="status-dot" id="status-dot"></span>
-      <span id="status-text">a ligar…</span>
+      <span id="status-text">connecting…</span>
     </div>
   </div>
 
@@ -109,21 +109,21 @@
   </button>
 
   <div class="actions">
-    <button id="btn-password" title="Proteger este pad com password">🔒 Password</button>
-    <button id="btn-clear" class="danger" title="Apagar texto e ficheiros deste pad">🗑 Limpar pad</button>
+    <button id="btn-password" title="Protect this pad with a password">🔒 Password</button>
+    <button id="btn-clear" class="danger" title="Delete this pad's text and files">🗑 Clear pad</button>
   </div>
 </header>
 
 <main id="pad-main">
-  <textarea id="editor" placeholder="Escreve aqui… é guardado automaticamente." spellcheck="false"></textarea>
+  <textarea id="editor" placeholder="Type here… it's saved automatically." spellcheck="false"></textarea>
 
   <section class="files">
     <div class="files-head">
-      <h2>Ficheiros</h2>
+      <h2>Files</h2>
       <div class="upload-bar">
-        <button id="btn-choose-file" class="primary">📎 Escolher ficheiro</button>
+        <button id="btn-choose-file" class="primary">📎 Choose file</button>
         <input type="file" id="file-input" multiple hidden>
-        <span style="color: var(--text-dim); font-size: 0.8rem;">ou arrasta ficheiros para a página, ou cola (Ctrl+V)</span>
+        <span style="color: var(--text-dim); font-size: 0.8rem;">or drag files onto the page, or paste (Ctrl+V)</span>
       </div>
     </div>
     <div class="upload-progress-list" id="upload-progress-list"></div>
@@ -132,60 +132,60 @@
 </main>
 </div>
 
-<footer class="hint">Sebinta — sem contas, sem histórico. O que apagares aqui, desaparece para sempre.</footer>
+<footer class="hint">Sebinta — no accounts, no history. What you delete here is gone for good.</footer>
 
-<div class="dropzone-overlay" id="dropzone-overlay">Larga aqui para enviar</div>
+<div class="dropzone-overlay" id="dropzone-overlay">Drop here to upload</div>
 
-<!-- Modal: pad protegido por password -->
+<!-- Modal: password-protected pad -->
 <div class="modal-backdrop" id="modal-unlock">
   <div class="modal">
-    <h3>Este pad está protegido</h3>
-    <p class="hint">Introduz a password para veres o conteúdo.</p>
+    <h3>This pad is protected</h3>
+    <p class="hint">Enter the password to see the content.</p>
     <form id="form-unlock" autocomplete="off">
       <input type="password" id="unlock-password" placeholder="Password" autofocus required>
       <p class="error-msg" id="unlock-error"></p>
       <div class="row">
-        <button type="submit" class="primary">Desbloquear</button>
+        <button type="submit" class="primary">Unlock</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Modal: definir/remover password do pad -->
+<!-- Modal: set/remove the pad's password -->
 <div class="modal-backdrop" id="modal-password">
   <div class="modal">
-    <h3>Password deste pad</h3>
-    <p class="hint">Define uma password para este pad, ou deixa em branco para remover a proteção.</p>
+    <h3>This pad's password</h3>
+    <p class="hint">Set a password for this pad, or leave it blank to remove protection.</p>
     <form id="form-password" autocomplete="off">
-      <input type="password" id="new-password" placeholder="Nova password (mínimo 4 caracteres)">
+      <input type="password" id="new-password" placeholder="New password (minimum 4 characters)">
       <p class="error-msg" id="password-error"></p>
       <div class="row">
-        <button type="button" id="btn-password-cancel">Cancelar</button>
-        <button type="submit" class="primary">Guardar</button>
+        <button type="button" id="btn-password-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Modal: confirmar limpeza do pad -->
+<!-- Modal: confirm clearing the pad -->
 <div class="modal-backdrop" id="modal-clear">
   <div class="modal">
-    <h3>Limpar este pad?</h3>
-    <p class="hint">Isto apaga o texto e TODOS os ficheiros deste pad, para sempre. Não é possível desfazer.</p>
+    <h3>Clear this pad?</h3>
+    <p class="hint">This deletes the text and ALL files in this pad, permanently. This can't be undone.</p>
     <div class="row">
-      <button type="button" id="btn-clear-cancel">Cancelar</button>
-      <button type="button" id="btn-clear-confirm" class="danger">Apagar tudo</button>
+      <button type="button" id="btn-clear-cancel">Cancel</button>
+      <button type="button" id="btn-clear-confirm" class="danger">Delete everything</button>
     </div>
   </div>
 </div>
 
-<!-- Lightbox: pré-visualização de imagem em ecrã inteiro, antes de transferir -->
+<!-- Lightbox: full-screen image preview, before downloading -->
 <div class="lightbox" id="lightbox" hidden>
-  <button class="lightbox-close" id="lightbox-close" title="Fechar (Esc)">✕</button>
+  <button class="lightbox-close" id="lightbox-close" title="Close (Esc)">✕</button>
   <img id="lightbox-img" alt="">
   <div class="lightbox-bar">
     <span id="lightbox-name"></span>
-    <button id="lightbox-download">⬇ Transferir</button>
+    <button id="lightbox-download">⬇ Download</button>
   </div>
 </div>
 

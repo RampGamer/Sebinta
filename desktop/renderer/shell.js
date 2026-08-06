@@ -43,9 +43,9 @@
     tabs.forEach((t) => {
       const el = document.createElement('div');
       el.className = 'tab' + (t.id === activeId ? ' active' : '');
-      const label = t.padPath || 'novo separador';
+      const label = t.padPath || 'new tab';
       el.title = label;
-      el.innerHTML = `<span class="dot${t.connected ? '' : ' loading'}"></span><span class="name"></span><span class="close" title="Fechar">✕</span>`;
+      el.innerHTML = `<span class="dot${t.connected ? '' : ' loading'}"></span><span class="name"></span><span class="close" title="Close">✕</span>`;
       el.querySelector('.name').textContent = label;
       el.addEventListener('click', () => switchTab(t.id));
       el.querySelector('.close').addEventListener('click', (ev) => {

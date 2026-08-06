@@ -96,8 +96,9 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
   if (!password) {
     store.setPadPassword(req.padId, null);
+    res.json({ ok: true, hasPassword: false });
     ws.broadcastPadChanged(req.padId);
-    return res.json({ ok: true, hasPassword: false });
+    return;
   }
   if (password.length < 4 || password.length > 200) {
     return res.status(400).json({ error: 'invalid_password_length' });
@@ -105,10 +106,13 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
   const hash = auth.hashPadPassword(password);
   store.setPadPassword(req.padId, hash);
   auth.markPadUnlocked(req, res, req.padId);
-  // Sem isto, quem já tem o pad aberto só via o badge "Protegido" (ou fica
-  // bloqueado, se ainda não tiver a cookie de desbloqueio) depois de um F5.
-  ws.broadcastPadChanged(req.padId);
   res.json({ ok: true, hasPassword: true });
+  // Broadcast só depois da resposta (que já leva a cookie de desbloqueio)
+  // ter sido enviada — nunca antes: quem definiu a password já tem uma
+  // ligação WebSocket aberta neste pad, e se o "changed" chegasse primeiro,
+  // o refresh() que ele dispara ia usar o cookie ainda antigo e via-se a si
+  // próprio como bloqueado, logo depois de definir a password.
+  ws.broadcastPadChanged(req.padId);
 });
 
 // POST /api/pad/unlock?id=... { password } -> tenta desbloquear um pad protegido

@@ -36,12 +36,12 @@ form.addEventListener('submit', async (ev) => {
       return;
     }
     if (res.status === 429) {
-      errorMsg.textContent = 'Demasiadas tentativas. Tenta novamente daqui a pouco.';
+      errorMsg.textContent = 'Too many attempts. Try again shortly.';
     } else {
-      errorMsg.textContent = 'Password incorreta.';
+      errorMsg.textContent = 'Incorrect password.';
     }
   } catch (e) {
-    errorMsg.textContent = 'Erro de ligação. Tenta novamente.';
+    errorMsg.textContent = 'Connection error. Try again.';
   } finally {
     submitBtn.disabled = false;
   }

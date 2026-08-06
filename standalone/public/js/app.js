@@ -34,7 +34,7 @@
       .then((release) => {
         if (releaseTag && release.tag_name) {
           releaseTag.textContent = ''; // textContent: nunca innerHTML, previne XSS
-          releaseTag.append('Última versão: ');
+          releaseTag.append('Latest version: ');
           const b = document.createElement('b');
           b.textContent = release.tag_name;
           releaseTag.append(b);
@@ -52,7 +52,7 @@
         }
       })
       .catch(() => {
-        if (releaseTag) releaseTag.textContent = 'Ver todas as versões no GitHub.';
+        if (releaseTag) releaseTag.textContent = 'See all versions on GitHub.';
       });
   }
 
@@ -106,10 +106,10 @@
   // único sinal visual de que a proteção ficou mesmo ativa.
   function updateProtectedBadge() {
     protectedBadge.hidden = !state.hasPassword;
-    btnPassword.textContent = state.hasPassword ? '🔒 Password (ativa)' : '🔒 Password';
+    btnPassword.textContent = state.hasPassword ? '🔒 Password (active)' : '🔒 Password';
     btnPassword.title = state.hasPassword
-      ? 'Este pad está protegido — clica para alterar ou remover a password'
-      : 'Proteger este pad com password';
+      ? 'This pad is protected — click to change or remove the password'
+      : 'Protect this pad with a password';
   }
   let lastLocalEditAt = 0;
   let saveTimer = null;
@@ -194,7 +194,7 @@
       return;
     }
     if (!res.ok) {
-      toast('Não foi possível carregar o pad.', 'error');
+      toast('Could not load the pad.', 'error');
       return;
     }
     const data = await res.json();
@@ -239,7 +239,7 @@
       img.alt = file.name;
       img.loading = 'lazy';
       preview.appendChild(img);
-      preview.title = 'Clica para pré-visualizar';
+      preview.title = 'Click to preview';
       preview.addEventListener('click', () => openLightbox(file));
     } else if (file.kind === 'video') {
       const video = document.createElement('video');
@@ -273,7 +273,7 @@
     row.className = 'row';
 
     const downloadBtn = document.createElement('button');
-    downloadBtn.textContent = '⬇ Transferir';
+    downloadBtn.textContent = '⬇ Download';
     downloadBtn.addEventListener('click', () => {
       window.location.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/download`);
     });
@@ -281,7 +281,7 @@
 
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = '🗑';
-    deleteBtn.title = 'Apagar ficheiro';
+    deleteBtn.title = 'Delete file';
     deleteBtn.addEventListener('click', () => deleteFile(file.id));
     row.appendChild(deleteBtn);
 
@@ -311,17 +311,17 @@
   async function deleteFile(fileId) {
     const res = await api(`/api/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' });
     if (res.ok) {
-      toast('Ficheiro apagado.', 'success');
+      toast('File deleted.', 'success');
       refresh();
     } else {
-      toast('Não foi possível apagar o ficheiro.', 'error');
+      toast('Could not delete the file.', 'error');
     }
   }
 
   // --- autosave do texto ---
   editor.addEventListener('input', () => {
     lastLocalEditAt = Date.now();
-    setStatus('saving', 'a gravar…');
+    setStatus('saving', 'saving…');
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveContent, 600);
   });
@@ -335,14 +335,14 @@
         body: JSON.stringify({ content }),
       });
       if (!res.ok) {
-        setStatus('offline', 'erro ao gravar');
+        setStatus('offline', 'save error');
         return;
       }
       const data = await res.json();
       state.version = data.version;
-      setStatus(ws && ws.readyState === WebSocket.OPEN ? 'online' : 'offline', 'gravado');
+      setStatus(ws && ws.readyState === WebSocket.OPEN ? 'online' : 'offline', 'saved');
     } catch (e) {
-      setStatus('offline', 'sem ligação');
+      setStatus('offline', 'no connection');
     }
   }
 
@@ -355,9 +355,9 @@
     if (res.ok) {
       editor.value = '';
       fileGrid.replaceChildren();
-      toast('Pad limpo.', 'success');
+      toast('Pad cleared.', 'success');
     } else {
-      toast('Não foi possível limpar o pad.', 'error');
+      toast('Could not clear the pad.', 'error');
     }
   });
 
@@ -381,12 +381,12 @@
       state.hasPassword = data.hasPassword;
       updateProtectedBadge();
       modalPassword.classList.remove('active');
-      toast(data.hasPassword ? 'Password definida — este pad já está protegido (repara no ícone 🔒 junto ao nome).' : 'Password removida.', 'success');
+      toast(data.hasPassword ? 'Password set — this pad is now protected (look for the 🔒 icon next to the name).' : 'Password removed.', 'success');
     } else {
       const data = await res.json().catch(() => ({}));
       passwordError.textContent = data.error === 'invalid_password_length'
-        ? 'A password deve ter entre 4 e 200 caracteres.'
-        : 'Não foi possível guardar a password.';
+        ? 'The password must be between 4 and 200 characters.'
+        : 'Could not save the password.';
     }
   });
 
@@ -406,9 +406,9 @@
       refresh();
       connectRealtime();
     } else if (res.status === 429) {
-      unlockError.textContent = 'Demasiadas tentativas. Aguarda um pouco.';
+      unlockError.textContent = 'Too many attempts. Wait a bit.';
     } else {
-      unlockError.textContent = 'Password incorreta.';
+      unlockError.textContent = 'Incorrect password.';
     }
   });
 
@@ -432,7 +432,7 @@
     ws.addEventListener('open', () => {
       clearTimeout(connectTimeout);
       wsFailCount = 0;
-      setStatus('online', 'em direto');
+      setStatus('online', 'live');
       stopPolling();
     });
     ws.addEventListener('message', (ev) => {
@@ -444,7 +444,7 @@
     ws.addEventListener('close', () => {
       clearTimeout(connectTimeout);
       wsFailCount++;
-      setStatus('offline', 'sem ligação em direto');
+      setStatus('offline', 'live connection lost');
       startPolling();
       // Tenta religar com backoff, até 30s.
       const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(wsFailCount, 5)));

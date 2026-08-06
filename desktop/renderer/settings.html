@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Sebinta — configurar servidor</title>
+<title>Sebinta — server setup</title>
 <style>
   :root { color-scheme: dark; }
   body {
@@ -24,11 +24,11 @@
 </style>
 </head>
 <body>
-  <h1>A que servidor Sebinta ligar?</h1>
-  <p>Só precisas de indicar isto uma vez — fica gravado e nos próximos arranques a app abre direto nos teus separadores. Podes mudar mais tarde no botão ⚙ à esquerda da faixa de separadores.</p>
-  <input id="url" type="text" placeholder="https://notas.oteudominio.com" autofocus>
+  <h1>Which Sebinta server should this connect to?</h1>
+  <p>You only need to set this once — it's saved, and on the next launch the app opens straight into your tabs. You can change it later from the ⚙ button on the left of the tab strip.</p>
+  <input id="url" type="text" placeholder="https://notes.yourdomain.com" autofocus>
   <div class="error" id="error"></div>
-  <button id="save">Continuar</button>
+  <button id="save">Continue</button>
 
   <script>
     const input = document.getElementById('url');
@@ -47,7 +47,7 @@
         url = new URL(raw);
         if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error();
       } catch (e) {
-        errorEl.textContent = 'Indica um URL completo, ex.: https://notas.oteudominio.com';
+        errorEl.textContent = 'Enter a full URL, e.g.: https://notes.yourdomain.com';
         return;
       }
       saveBtn.disabled = true;

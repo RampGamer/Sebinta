@@ -30,7 +30,7 @@
     nameEl.textContent = name;
     const statusEl = document.createElement('span');
     statusEl.className = 'status';
-    statusEl.textContent = 'a preparar…';
+    statusEl.textContent = 'preparing…';
     label.appendChild(nameEl);
     label.appendChild(statusEl);
     const track = document.createElement('div');
@@ -50,7 +50,7 @@
       setError: (msg) => {
         item.classList.add('error');
         errorMsg.textContent = msg;
-        statusEl.textContent = 'falhou';
+        statusEl.textContent = 'failed';
       },
       remove: () => item.remove(),
     };
@@ -64,35 +64,35 @@
       xhr.upload.addEventListener('progress', (ev) => {
         if (ev.lengthComputable) {
           progress.setProgress(Math.round((ev.loaded / ev.total) * 100));
-          progress.setStatus('a enviar… ' + Math.round((ev.loaded / ev.total) * 100) + '%');
+          progress.setStatus('uploading… ' + Math.round((ev.loaded / ev.total) * 100) + '%');
         }
       });
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           progress.setProgress(100);
-          progress.setStatus('concluído');
+          progress.setStatus('done');
           resolve();
         } else {
-          let message = 'Falha no envio.';
+          let message = 'Upload failed.';
           try {
             const data = JSON.parse(xhr.responseText);
             if (data.error === 'metadata_cleanup_failed') {
-              message = data.message || 'A limpeza de metadados no servidor falhou.';
+              message = data.message || 'Server-side metadata cleanup failed.';
             } else if (data.error === 'file_too_large') {
-              message = `Ficheiro demasiado grande (máximo ${data.maxMb} MB).`;
+              message = `File too large (max ${data.maxMb} MB).`;
             } else if (data.error === 'pad_locked') {
-              message = 'Este pad está protegido — desbloqueia-o primeiro.';
+              message = 'This pad is protected — unlock it first.';
             } else if (data.error === 'too_many_uploads') {
-              message = 'Demasiados uploads em pouco tempo. Aguarda um pouco.';
+              message = 'Too many uploads in a short time. Wait a bit.';
             } else if (data.error) {
               message = data.error;
             }
-          } catch (e) { /* resposta não-JSON, mantém mensagem genérica */ }
+          } catch (e) { /* non-JSON response, keep the generic message */ }
           reject(new Error(message));
         }
       });
-      xhr.addEventListener('error', () => reject(new Error('Erro de rede durante o envio.')));
-      xhr.addEventListener('abort', () => reject(new Error('Envio cancelado.')));
+      xhr.addEventListener('error', () => reject(new Error('Network error during upload.')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload canceled.')));
 
       const formData = new FormData();
       formData.append('file', file, file.name);
@@ -104,13 +104,13 @@
     const progress = createProgressItem(file.name);
     try {
       const toUpload = preUploadHook ? await preUploadHook(file, progress.setStatus) : file;
-      progress.setStatus('a enviar…');
+      progress.setStatus('uploading…');
       await uploadWithProgress(toUpload, progress);
       Sebinta.refresh();
       setTimeout(() => progress.remove(), 1200);
     } catch (err) {
-      progress.setError(err.message || 'Falha desconhecida.');
-      Sebinta.toast(`${file.name}: ${err.message || 'falha no envio'}`, 'error');
+      progress.setError(err.message || 'Unknown failure.');
+      Sebinta.toast(`${file.name}: ${err.message || 'upload failed'}`, 'error');
       setTimeout(() => progress.remove(), 8000);
     }
   }
