@@ -18,6 +18,8 @@ import (
 var embeddedPublic embed.FS
 
 func main() {
+	enableANSI()
+
 	cfg := loadConfig()
 	currentConfig = cfg
 
