@@ -201,15 +201,22 @@ func handlePadUnlock(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http.Re
 			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 			return
 		}
+		attemptKey := clientIP(r, cfg) + ":" + padID
+		if padUnlockAttemptLimiter.blocked(attemptKey) {
+			writeJSONError(w, http.StatusTooManyRequests, "too_many_attempts")
+			return
+		}
 		var body padPasswordBody
 		_ = readJSONBody(r, 4*1024, &body)
 		if !verifyPadPassword(body.Password, pad.PasswordHash.String) {
+			padUnlockAttemptLimiter.recordFailure(attemptKey)
 			// 403, not 401: the client treats any 401 as "site auth required"
 			// and redirects to /login (see api() in app.js) — a wrong pad
 			// password has nothing to do with that.
 			writeJSONError(w, http.StatusForbidden, "invalid_password")
 			return
 		}
+		padUnlockAttemptLimiter.recordSuccess(attemptKey)
 		markPadUnlocked(cfg, w, r, padID)
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 	}

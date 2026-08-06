@@ -4,7 +4,13 @@ const express = require('express');
 const config = require('../config');
 const auth = require('../auth');
 const store = require('../services/padStore');
-const { padWriteLimiter, padPasswordLimiter } = require('../middleware/rateLimit');
+const {
+  padWriteLimiter,
+  padPasswordLimiter,
+  isPadUnlockBlocked,
+  recordPadUnlockFailure,
+  recordPadUnlockSuccess,
+} = require('../middleware/rateLimit');
 const ws = require('../ws');
 
 const router = express.Router();
@@ -119,13 +125,18 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
 router.post('/unlock', padPasswordLimiter, auth.csrfProtection, (req, res) => {
   const pad = store.getOrCreatePad(req.padId);
   if (!pad.password_hash) return res.json({ ok: true });
+  if (isPadUnlockBlocked(req)) {
+    return res.status(429).json({ error: 'too_many_attempts' });
+  }
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
   if (!auth.verifyPadPassword(password, pad.password_hash)) {
+    recordPadUnlockFailure(req);
     // 403, not 401: the client treats any 401 as "site auth required" and
     // redirects to /login (see api() in app.js) — a wrong pad password has
     // nothing to do with that.
     return res.status(403).json({ error: 'invalid_password' });
   }
+  recordPadUnlockSuccess(req);
   auth.markPadUnlocked(req, res, req.padId);
   res.json({ ok: true });
 });
