@@ -12,18 +12,18 @@ import (
 	"time"
 )
 
-// O binário oficial do cloudflared vem embutido (ver tunnel_<os>_<arch>.go,
-// um por plataforma suportada — só o correspondente ao alvo de cada build
-// entra no binário final). Não é possível "embeber" o cloudflared como
-// biblioteca Go: o seu ponto de entrada é package main (não pode ser
-// importado) e as internals (supervisor, orchestration, ...) não são uma
-// API pública estável — a via realista é correr o mesmo binário oficial,
-// mas sem exigir que o utilizador o instale à parte.
+// The official cloudflared binary is embedded (see tunnel_<os>_<arch>.go,
+// one per supported platform — only the one matching each build's target
+// ends up in the final binary). cloudflared can't be embedded as a Go
+// library: its entry point is package main (can't be imported) and its
+// internals (supervisor, orchestration, ...) aren't a stable public API —
+// the realistic path is running the same official binary, just without
+// requiring the user to install it separately.
 
 var trycloudflareRe = regexp.MustCompile(`https://[a-zA-Z0-9-]+\.trycloudflare\.com`)
 
-// extractEmbeddedCloudflared grava o binário embutido num ficheiro
-// temporário executável e devolve o caminho.
+// extractEmbeddedCloudflared writes the embedded binary to a temporary
+// executable file and returns its path.
 func extractEmbeddedCloudflared() (string, error) {
 	dir, err := os.MkdirTemp("", "sebinta-cloudflared-")
 	if err != nil {
@@ -36,10 +36,10 @@ func extractEmbeddedCloudflared() (string, error) {
 	return path, nil
 }
 
-// tunnelHandle junta o processo do cloudflared e a pasta temporária onde o
-// binário embutido foi extraído, para o chamador poder parar e limpar tudo
-// de forma síncrona no encerramento (não dá para confiar só no goroutine de
-// leitura para isso — o processo pode terminar antes dele correr).
+// tunnelHandle bundles the cloudflared process with the temp folder its
+// embedded binary was extracted to, so the caller can stop and clean up
+// everything synchronously on shutdown (can't rely on the reader goroutine
+// alone for that — the process can exit before it runs).
 type tunnelHandle struct {
 	cmd     *exec.Cmd
 	tempDir string
@@ -58,24 +58,24 @@ func (h *tunnelHandle) stop() {
 	}
 }
 
-// startTunnel arranca o cloudflared embutido (Quick Tunnel por omissão, ou
-// um túnel nomeado se TUNNEL_TOKEN estiver definido — mesma variável usada
-// pelo docker-compose.yml). Cada linha do seu output é encaminhada para o
-// logger da app (prefixo "[cloudflared]"); quando aparece um URL
-// *.trycloudflare.com, é enviado a urlCh.
+// startTunnel starts the embedded cloudflared (Quick Tunnel by default, or a
+// named tunnel if TUNNEL_TOKEN is set — the same variable docker-compose.yml
+// uses). Each line of its output is forwarded to the app's logger (prefix
+// "[cloudflared]"); when a *.trycloudflare.com URL shows up, it's sent to
+// urlCh.
 func startTunnel(cfg *Config, urlCh chan<- string) (*tunnelHandle, error) {
 	binPath, err := extractEmbeddedCloudflared()
 	if err != nil {
-		return nil, fmt.Errorf("não foi possível preparar o cloudflared embutido: %w", err)
+		return nil, fmt.Errorf("could not prepare the embedded cloudflared: %w", err)
 	}
 	tempDir := filepath.Dir(binPath)
 
 	var args []string
 	if cfg.TunnelToken != "" {
-		log.Println("[cloudflared] TUNNEL_TOKEN definido — a ligar túnel nomeado.")
+		log.Println("[cloudflared] TUNNEL_TOKEN set — connecting named tunnel.")
 		args = []string{"tunnel", "run"}
 	} else {
-		log.Println("[cloudflared] a pedir um Quick Tunnel (sem conta Cloudflare)...")
+		log.Println("[cloudflared] requesting a Quick Tunnel (no Cloudflare account)...")
 		args = []string{"tunnel", "--url", "http://localhost:" + cfg.Port}
 	}
 
@@ -83,20 +83,20 @@ func startTunnel(cfg *Config, urlCh chan<- string) (*tunnelHandle, error) {
 	if cfg.TunnelToken != "" {
 		cmd.Env = append(os.Environ(), "TUNNEL_TOKEN="+cfg.TunnelToken)
 	}
-	// cloudflared escreve os logs interessantes (incluindo o URL do Quick
-	// Tunnel) em stderr — unificamos os dois no mesmo pipe para não perder
-	// nenhuma linha nem complicar com dois leitores.
+	// cloudflared writes the interesting logs (including the Quick Tunnel
+	// URL) to stderr — we merge both into the same pipe so we never miss a
+	// line, and to avoid juggling two readers.
 	pr, pw := io.Pipe()
 	cmd.Stdout = pw
 	cmd.Stderr = pw
 
 	if err := cmd.Start(); err != nil {
 		os.RemoveAll(tempDir)
-		return nil, fmt.Errorf("não foi possível arrancar o cloudflared: %w", err)
+		return nil, fmt.Errorf("could not start cloudflared: %w", err)
 	}
 
-	// Espelha a saída do processo para o pipe de leitura; fechar o pipe
-	// quando o processo terminar é o que faz o scanner abaixo sair do loop.
+	// Mirrors the process's output into the read pipe; closing the pipe when
+	// the process exits is what makes the scanner below exit its loop.
 	go func() {
 		_ = cmd.Wait()
 		pw.Close()
@@ -122,9 +122,10 @@ func startTunnel(cfg *Config, urlCh chan<- string) (*tunnelHandle, error) {
 
 var logFileHandle *os.File
 
-// setupLogging escreve os logs simultaneamente no terminal e num ficheiro
-// (cfg.LogPath, ou LOG_FILE) — sem isto, correr o servidor em background
-// (nohup, systemd sem captura de stdout, etc.) perdia todo o histórico.
+// setupLogging writes logs to both the terminal and a file (cfg.LogPath, or
+// LOG_FILE) simultaneously — without this, running the server in the
+// background (nohup, systemd without stdout capture, etc.) would lose the
+// entire history.
 func setupLogging(cfg *Config) (io.Closer, error) {
 	if err := os.MkdirAll(filepath.Dir(cfg.LogPath), 0o755); err != nil {
 		return nil, err
@@ -150,11 +151,11 @@ func isStdoutTTY() bool {
 const ansiBoldCyan = "\x1b[1;36m"
 const ansiReset = "\x1b[0m"
 
-// printHighlight regista a mesma linha que log.Printf registaria (mesmo
-// timestamp, mesmo ficheiro), mas no terminal (se for mesmo um terminal —
-// nunca metemos códigos ANSI num ficheiro de log ou numa pipe) destaca-a a
-// cores para se distinguir do resto do texto. Usado só para a linha do URL
-// do túnel, que é a informação mais importante ao arrancar.
+// printHighlight logs the same line log.Printf would (same timestamp, same
+// file), but on the terminal (only if it really is one — we never put ANSI
+// codes in a log file or a pipe) highlights it in color to stand out from
+// the rest of the text. Used only for the tunnel URL line, the single most
+// important piece of information on startup.
 func printHighlight(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	ts := time.Now().Format("2006/01/02 15:04:05")

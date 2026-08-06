@@ -41,7 +41,7 @@ function contentDispositionHeader(disposition, filename) {
   return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
-/** Middleware comum: valida ?id=, garante que existe e que não está trancado. */
+/** Shared middleware: validates ?id=, ensures it exists and isn't locked. */
 async function requireUnlockedPad(req, res, next) {
   const padId = store.normalizePadId(typeof req.query.id === 'string' ? req.query.id : '');
   if (!padId) return res.status(400).json({ error: 'invalid_pad_id' });
@@ -83,13 +83,13 @@ function fileToJson(f) {
 }
 
 /*
- * POST /api/files?id=... (multipart/form-data, campo "file")
+ * POST /api/files?id=... (multipart/form-data, field "file")
  *
- * Sem limpeza de metadados no servidor — quem quiser garantir isso usa a
- * app desktop (desktop/) ou o CLI (cli/) antes de enviar. O multer grava
- * sempre primeiro em uploads/quarantine/ (nome de pasta mantido por
- * compatibilidade com volumes Docker existentes) só para permitir detetar o
- * tipo real por magic bytes antes de mover para uploads/final/.
+ * No metadata cleaning on the server — anyone who needs that guarantee
+ * uses the desktop app (desktop/) or the CLI (cli/) before uploading.
+ * multer always writes to uploads/quarantine/ first (folder name kept for
+ * compatibility with existing Docker volumes) just to allow detecting the
+ * real type via magic bytes before moving to uploads/final/.
  */
 router.post('/', uploadLimiter, auth.csrfProtection, requireUnlockedPad, (req, res) => {
   upload.single('file')(req, res, async (err) => {
@@ -110,9 +110,9 @@ router.post('/', uploadLimiter, auth.csrfProtection, requireUnlockedPad, (req, r
       const head = await readHeadBytes(quarantineFile);
       const sniffed = fileType.sniff(head, req.file.originalname);
 
-      // O nome guardado inclui a extensão real detetada por magic bytes
-      // (nunca a extensão declarada pelo cliente), para o Content-Type
-      // servido em /download e /preview ser sempre correto.
+      // The stored name includes the real extension detected via magic
+      // bytes (never the extension declared by the client), so the
+      // Content-Type served in /download and /preview is always correct.
       const storedName = `${req.file.filename}${sniffed.ext || ''}`;
       const finalDest = storage.finalPath(storedName);
       await fsp.rename(quarantineFile, finalDest);
@@ -134,7 +134,7 @@ router.post('/', uploadLimiter, auth.csrfProtection, requireUnlockedPad, (req, r
       res.status(201).json(fileToJson(fileRow));
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.error('Falha no processamento do upload:', e.message);
+      console.error('Upload processing failed:', e.message);
       await fsp.unlink(quarantineFile).catch(() => {});
       if (finalStoredPath) await fsp.unlink(finalStoredPath).catch(() => {});
       res.status(500).json({ error: 'upload_processing_failed' });
@@ -154,8 +154,8 @@ router.get('/:fileId/download', requireUnlockedPad, async (req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
-// SVG nunca é pré-visualizado inline (pode conter <script>); só imagem
-// raster e vídeo têm preview — ver requisito de segurança #17.
+// SVG is never previewed inline (it can contain <script>); only raster
+// images and video get a preview — see security requirement #17.
 router.get('/:fileId/preview', requireUnlockedPad, async (req, res) => {
   const file = store.getFile(req.padId, req.params.fileId);
   if (!file) return res.status(404).json({ error: 'not_found' });

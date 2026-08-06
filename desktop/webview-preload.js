@@ -1,14 +1,14 @@
 'use strict';
 
 /*
- * Preload de cada separador (<webview>), forçado por main.js em
- * 'will-attach-webview' — corre em contexto isolado, com acesso ao DOM da
- * página real do Sebinta mas não aos objetos JS que ela define. Expõe
- * window.sebintaDesktop.cleanFile(name, buffer) via contextBridge, e liga
- * essa API a window.Sebinta.setPreUploadHook (definido em
- * public/js/upload.js) para limpar Office/PDF localmente antes do upload.
- * A limpeza está sempre ativa (só fica fora do âmbito para tipos não
- * suportados); tags DLP forçam-na de qualquer forma, ver main.js.
+ * Preload for each tab (<webview>), forced by main.js on
+ * 'will-attach-webview' — runs in an isolated context, with access to the
+ * real Sebinta page's DOM but not to the JS objects it defines. Exposes
+ * window.sebintaDesktop.cleanFile(name, buffer) via contextBridge, and
+ * wires that API to window.Sebinta.setPreUploadHook (defined in
+ * public/js/upload.js) to clean Office/PDF locally before upload. Cleaning
+ * is always on (it's only out of scope for unsupported types); DLP tags
+ * force it regardless, see main.js.
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -27,10 +27,10 @@ function injectUploadHook() {
           const buffer = await file.arrayBuffer();
           const result = await window.sebintaDesktop.cleanFile(file.name, buffer);
           if (!result || !result.cleaned) return file;
-          if (onStatus) onStatus(result.forced ? 'tags DLP detetadas — a limpar…' : 'a limpar metadados…');
+          if (onStatus) onStatus(result.forced ? 'DLP tags detected — cleaning…' : 'cleaning metadata…');
           return new File([result.buffer], file.name, { type: file.type });
         } catch (err) {
-          console.error('[sebinta-desktop] limpeza falhou, a enviar ficheiro original:', err);
+          console.error('[sebinta-desktop] cleanup failed, sending the original file:', err);
           return file;
         }
       });
@@ -40,11 +40,11 @@ function injectUploadHook() {
   script.remove();
 }
 
-// Avisa a shell (janela principal) qual o tema ativo nesta página — para o
-// separador/⚙ na cromada da janela seguirem o mesmo estilo (ver
-// btn-brand-logo/theme-notebook em style.css e o listener 'ipc-message' em
-// shell.js). MutationObserver em vez de um evento custom: não precisa de
-// nenhuma alteração em app.js, reage a qualquer forma de a classe mudar.
+// Tells the shell (main window) which theme is active on this page — so
+// the tab/⚙ in the window chrome follow the same style (see
+// btn-brand-logo/theme-notebook in style.css and the 'ipc-message' listener
+// in shell.js). MutationObserver instead of a custom event: needs no
+// changes in app.js, reacts to any way the class might change.
 function reportTheme() {
   const isNotebook = document.body.classList.contains('theme-notebook');
   ipcRenderer.sendToHost('sebinta:theme', isNotebook ? 'notebook' : 'sober');

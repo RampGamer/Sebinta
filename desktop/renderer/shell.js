@@ -1,11 +1,10 @@
 'use strict';
 
 /*
- * Chrome da janela principal: botão ⚙ (mudar servidor) + faixa de
- * separadores estilo browser, um <webview> por separador (cada um com a sua
- * própria ligação WebSocket — trocar de separador não recarrega nada). O
- * estado dos separadores (caminhos abertos + qual está ativo) é persistido
- * via IPC em config.json, para reabrir tal como ficou.
+ * Main window chrome: ⚙ button (change server) + browser-style tab strip,
+ * one <webview> per tab (each with its own WebSocket connection — switching
+ * tabs reloads nothing). Tab state (open paths + which one is active) is
+ * persisted via IPC in config.json, to reopen exactly as it was left.
  */
 
 (function () {
@@ -64,9 +63,9 @@
     scheduleSave();
   }
 
-  // A cromada da janela (⚙ + separadores) segue o tema da página do
-  // separador ativo — cada webview avisa o seu tema via ipc-message (ver
-  // webview-preload.js), a chamada aqui só reflete o que já sabemos.
+  // The window chrome (⚙ + tabs) follows the active tab's page theme —
+  // each webview reports its theme via ipc-message (see
+  // webview-preload.js), the call here just reflects what we already know.
   function applyChromeTheme() {
     const active = tabs.find((t) => t.id === activeId);
     document.body.classList.toggle('theme-notebook', !!active && active.theme === 'notebook');
@@ -77,7 +76,7 @@
       const u = new URL(tab.webview.getURL());
       tab.padPath = decodeURIComponent(u.pathname.replace(/^\/+/, ''));
     } catch (e) {
-      /* navegação ainda não resolvida (about:blank, etc.) — ignora */
+      /* navigation not resolved yet (about:blank, etc.) — ignore */
     }
     renderStrip();
     scheduleSave();

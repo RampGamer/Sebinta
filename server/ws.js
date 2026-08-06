@@ -1,14 +1,14 @@
 'use strict';
 
 /*
- * Sincronização quase em tempo real entre dispositivos que têm o mesmo pad
- * aberto. Um WebSocket por aba, agrupado por pad ("room"). Quando o texto
- * ou a lista de ficheiros de um pad muda, todos os clientes ligados a esse
- * pad recebem uma notificação e voltam a pedir o estado atual (evita
- * problemas de ordering — o servidor é sempre a fonte da verdade).
+ * Near-real-time sync between devices that have the same pad open. One
+ * WebSocket per tab, grouped by pad ("room"). When a pad's text or file
+ * list changes, every client connected to that pad gets notified and
+ * re-fetches the current state (avoids ordering issues — the server is
+ * always the source of truth).
  *
- * O frontend faz fallback automático para polling curto se o WebSocket não
- * conseguir ligar (ex.: proxy que bloqueia upgrade).
+ * The frontend automatically falls back to short-interval polling if the
+ * WebSocket can't connect (e.g. a proxy that blocks upgrades).
  */
 
 const { WebSocketServer } = require('ws');
@@ -97,7 +97,7 @@ function attach(server) {
     });
   });
 
-  // Heartbeat: fecha ligações mortas (ex.: cliente que dormiu/perdeu rede).
+  // Heartbeat: closes dead connections (e.g. a client that slept/lost network).
   const interval = setInterval(() => {
     for (const room of rooms.values()) {
       for (const ws of room) {

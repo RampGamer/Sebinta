@@ -1,16 +1,16 @@
 'use strict';
 
 /*
- * UX de upload: botão, drag&drop, colar (Ctrl+V), barra de progresso, e
- * envio do ficheiro tal como está — este projeto não limpa metadados (ver
- * a app desktop em desktop/ e o CLI em cli/ para isso).
+ * Upload UX: button, drag&drop, paste (Ctrl+V), progress bar, and sending
+ * the file exactly as-is — this project doesn't clean metadata (see the
+ * desktop app in desktop/ and the CLI in cli/ for that).
  *
- * `Sebinta.setPreUploadHook(fn)` é um ponto de extensão opcional, sem uso
- * nenhum aqui: a app desktop Electron injeta-o para poder interceptar o
- * ficheiro antes do envio (limpá-lo localmente) sem duplicar esta UI.
+ * `Sebinta.setPreUploadHook(fn)` is an optional extension point, unused
+ * here: the Electron desktop app injects it to intercept the file before
+ * upload (cleaning it locally) without duplicating this UI.
  */
 (function () {
-  if (!window.Sebinta) return; // app.js não carregou (não deveria acontecer)
+  if (!window.Sebinta) return; // app.js didn't load (shouldn't happen)
 
   const fileInput = document.getElementById('file-input');
   const chooseBtn = document.getElementById('btn-choose-file');
@@ -122,7 +122,7 @@
     }
   }
 
-  // --- botão ---
+  // --- button ---
   chooseBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => {
     handleFiles(fileInput.files);
@@ -150,11 +150,11 @@
     }
   });
 
-  // --- colar (Ctrl+V) ---
+  // --- paste (Ctrl+V) ---
   window.addEventListener('paste', (ev) => {
     const editor = document.getElementById('editor');
     if (document.activeElement === editor && (!ev.clipboardData || !ev.clipboardData.files.length)) {
-      return; // colar texto normal no editor
+      return; // normal text paste into the editor
     }
     if (ev.clipboardData && ev.clipboardData.files && ev.clipboardData.files.length) {
       ev.preventDefault();

@@ -21,31 +21,31 @@ func main() {
 	case "-h", "--help", "help":
 		usage()
 	default:
-		fmt.Fprintf(os.Stderr, "comando desconhecido: %s\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n", os.Args[1])
 		usage()
 		os.Exit(1)
 	}
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `sebinta-clean — limpa metadados de documentos Office (.docx/.xlsx/.pptx) localmente, sem depender do servidor.
+	fmt.Fprint(os.Stderr, `sebinta-clean — strips metadata from Office documents (.docx/.xlsx/.pptx) locally, without depending on the server.
 
-Uso:
-  sebinta-clean clean [-o ficheiro-saida] <ficheiro.docx>
-      Limpa o ficheiro e grava o resultado (por omissão: <nome>.clean.<ext>).
-      Nunca contacta a rede.
+Usage:
+  sebinta-clean clean [-o output-file] <file.docx>
+      Cleans the file and writes the result (default: <name>.clean.<ext>).
+      Never touches the network.
 
-  sebinta-clean send -server URL -pad NOME [-site-password PASS] [-pad-password PASS] <ficheiro.docx>
-      Limpa o ficheiro localmente e envia-o diretamente para um pad do Sebinta.
+  sebinta-clean send -server URL -pad NAME [-site-password PASS] [-pad-password PASS] <file.docx>
+      Cleans the file locally and sends it straight to a Sebinta pad.
 
-Exemplos:
-  sebinta-clean clean relatorio.docx
-  sebinta-clean send -server https://notas.exemplo.com -pad projeto-x relatorio.docx
+Examples:
+  sebinta-clean clean report.docx
+  sebinta-clean send -server https://notes.example.com -pad project-x report.docx
 `)
 }
 
 func fatalf(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "erro: "+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, "error: "+format+"\n", args...)
 	os.Exit(1)
 }
 
@@ -59,36 +59,36 @@ func isOoxmlExt(name string) bool {
 
 func printRemoved(removed []string) {
 	if len(removed) == 0 {
-		fmt.Println("  (nenhum metadado sensível encontrado)")
+		fmt.Println("  (no sensitive metadata found)")
 		return
 	}
 	for _, r := range removed {
-		fmt.Printf("  removido: %s\n", r)
+		fmt.Printf("  removed: %s\n", r)
 	}
 }
 
 func cmdClean(args []string) {
 	fs := flag.NewFlagSet("clean", flag.ExitOnError)
-	out := fs.String("o", "", "ficheiro de saída (por omissão: <nome>.clean.<ext>)")
+	out := fs.String("o", "", "output file (default: <name>.clean.<ext>)")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(1)
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "uso: sebinta-clean clean [-o ficheiro-saida] <ficheiro>")
+		fmt.Fprintln(os.Stderr, "usage: sebinta-clean clean [-o output-file] <file>")
 		os.Exit(1)
 	}
 	input := rest[0]
 	if !isOoxmlExt(input) {
-		fatalf("%q não é um .docx/.xlsx/.pptx — este comando só limpa Office OOXML.", input)
+		fatalf("%q is not a .docx/.xlsx/.pptx — this command only cleans Office OOXML.", input)
 	}
 	data, err := os.ReadFile(input)
 	if err != nil {
-		fatalf("não foi possível ler %q: %v", input, err)
+		fatalf("could not read %q: %v", input, err)
 	}
 	cleaned, removed, err := CleanOoxml(data)
 	if err != nil {
-		fatalf("falha a limpar %q: %v", input, err)
+		fatalf("failed to clean %q: %v", input, err)
 	}
 	outPath := *out
 	if outPath == "" {
@@ -96,30 +96,30 @@ func cmdClean(args []string) {
 		outPath = strings.TrimSuffix(input, ext) + ".clean" + ext
 	}
 	if err := os.WriteFile(outPath, cleaned, 0o644); err != nil {
-		fatalf("não foi possível gravar %q: %v", outPath, err)
+		fatalf("could not write %q: %v", outPath, err)
 	}
-	fmt.Printf("Limpo: %s\n", outPath)
+	fmt.Printf("Cleaned: %s\n", outPath)
 	printRemoved(removed)
 }
 
 func cmdSend(args []string) {
 	fs := flag.NewFlagSet("send", flag.ExitOnError)
-	server := fs.String("server", "", "URL base do Sebinta (ex.: https://notas.exemplo.com)")
-	pad := fs.String("pad", "", "nome do pad de destino")
-	sitePassword := fs.String("site-password", "", "password do site, se estiver ativa")
-	padPassword := fs.String("pad-password", "", "password deste pad, se estiver protegido")
+	server := fs.String("server", "", "Sebinta base URL (e.g.: https://notes.example.com)")
+	pad := fs.String("pad", "", "destination pad name")
+	sitePassword := fs.String("site-password", "", "site password, if enabled")
+	padPassword := fs.String("pad-password", "", "this pad's password, if protected")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(1)
 	}
 	rest := fs.Args()
 	if *server == "" || *pad == "" || len(rest) != 1 {
-		fmt.Fprintln(os.Stderr, "uso: sebinta-clean send -server URL -pad NOME [-site-password P] [-pad-password P] <ficheiro>")
+		fmt.Fprintln(os.Stderr, "usage: sebinta-clean send -server URL -pad NAME [-site-password P] [-pad-password P] <file>")
 		os.Exit(1)
 	}
 	input := rest[0]
 	data, err := os.ReadFile(input)
 	if err != nil {
-		fatalf("não foi possível ler %q: %v", input, err)
+		fatalf("could not read %q: %v", input, err)
 	}
 
 	uploadData := data
@@ -127,35 +127,35 @@ func cmdSend(args []string) {
 	if isOoxmlExt(input) {
 		cleaned, removed, err := CleanOoxml(data)
 		if err != nil {
-			fatalf("falha a limpar %q: %v", input, err)
+			fatalf("failed to clean %q: %v", input, err)
 		}
 		uploadData = cleaned
-		fmt.Println("Limpeza local:")
+		fmt.Println("Local cleanup:")
 		printRemoved(removed)
 	} else {
-		fmt.Printf("Aviso: %q não é Office OOXML — não há limpeza local para este tipo; o servidor ainda o limpa em quarentena antes de ficar acessível.\n", input)
+		fmt.Printf("Warning: %q is not Office OOXML — there's no local cleanup for this type; the server still quarantine-scans it before it becomes reachable.\n", input)
 	}
 
 	client, err := NewSebintaClient(*server)
 	if err != nil {
-		fatalf("servidor inválido: %v", err)
+		fatalf("invalid server: %v", err)
 	}
 	if err := client.EnsureCsrf(); err != nil {
-		fatalf("não foi possível ligar ao servidor: %v", err)
+		fatalf("could not connect to the server: %v", err)
 	}
 	if *sitePassword != "" {
 		if err := client.SiteLogin(*sitePassword); err != nil {
-			fatalf("password do site rejeitada: %v", err)
+			fatalf("site password rejected: %v", err)
 		}
 	}
 	if *padPassword != "" {
 		if err := client.UnlockPad(*pad, *padPassword); err != nil {
-			fatalf("password do pad rejeitada: %v", err)
+			fatalf("pad password rejected: %v", err)
 		}
 	}
 	fileID, err := client.UploadFile(*pad, uploadName, uploadData)
 	if err != nil {
-		fatalf("envio falhou: %v", err)
+		fatalf("upload failed: %v", err)
 	}
-	fmt.Printf("Enviado para o pad %q (id do ficheiro: %s)\n", *pad, fileID)
+	fmt.Printf("Sent to pad %q (file id: %s)\n", *pad, fileID)
 }

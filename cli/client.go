@@ -12,10 +12,10 @@ import (
 	"strings"
 )
 
-// SebintaClient fala com a API HTTP do Sebinta, reproduzindo o mesmo fluxo
-// que o browser faz: obter o cookie CSRF (double-submit), autenticar-se
-// opcionalmente contra a password do site e/ou de um pad, e só depois
-// enviar o ficheiro para /api/files.
+// SebintaClient talks to Sebinta's HTTP API, reproducing the same flow the
+// browser does: get the CSRF cookie (double-submit), optionally
+// authenticate against the site password and/or a pad's password, and only
+// then send the file to /api/files.
 type SebintaClient struct {
 	baseURL string
 	http    *http.Client
@@ -25,7 +25,7 @@ type SebintaClient struct {
 func NewSebintaClient(server string) (*SebintaClient, error) {
 	u, err := url.Parse(server)
 	if err != nil || u.Scheme != "http" && u.Scheme != "https" || u.Host == "" {
-		return nil, fmt.Errorf("indica um URL completo, ex.: https://notas.exemplo.com")
+		return nil, fmt.Errorf("enter a full URL, e.g.: https://notes.example.com")
 	}
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -37,8 +37,8 @@ func NewSebintaClient(server string) (*SebintaClient, error) {
 	}, nil
 }
 
-// EnsureCsrf faz um pedido GET inofensivo só para receber o cookie fp_csrf
-// que o servidor define em qualquer resposta (server/auth.js:ensureCsrfCookie).
+// EnsureCsrf makes a harmless GET request just to receive the fp_csrf
+// cookie the server sets on any response (server/auth.js:ensureCsrfCookie).
 func (c *SebintaClient) EnsureCsrf() error {
 	req, err := http.NewRequest(http.MethodGet, c.baseURL+"/health", nil)
 	if err != nil {
@@ -50,7 +50,7 @@ func (c *SebintaClient) EnsureCsrf() error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("resposta inesperada do servidor (status %d) — confirma o URL", resp.StatusCode)
+		return fmt.Errorf("unexpected response from the server (status %d) — check the URL", resp.StatusCode)
 	}
 	u, _ := url.Parse(c.baseURL)
 	for _, ck := range c.http.Jar.Cookies(u) {
@@ -59,7 +59,7 @@ func (c *SebintaClient) EnsureCsrf() error {
 		}
 	}
 	if c.csrf == "" {
-		return fmt.Errorf("o servidor não devolveu o cookie CSRF esperado")
+		return fmt.Errorf("the server did not return the expected CSRF cookie")
 	}
 	return nil
 }
@@ -114,8 +114,8 @@ func (c *SebintaClient) UnlockPad(pad, password string) error {
 	return nil
 }
 
-// UploadFile envia o ficheiro (já limpo) para /api/files?id=<pad> e devolve
-// o id atribuído pelo servidor.
+// UploadFile sends the (already cleaned) file to /api/files?id=<pad> and
+// returns the id assigned by the server.
 func (c *SebintaClient) UploadFile(pad, filename string, data []byte) (string, error) {
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
@@ -152,9 +152,9 @@ func (c *SebintaClient) UploadFile(pad, filename string, data []byte) (string, e
 		_ = json.Unmarshal(b, &data2)
 		return data2.ID, nil
 	case http.StatusUnauthorized:
-		return "", fmt.Errorf("password do site necessária (usa -site-password)")
+		return "", fmt.Errorf("site password required (use -site-password)")
 	case http.StatusLocked:
-		return "", fmt.Errorf("este pad está protegido (usa -pad-password)")
+		return "", fmt.Errorf("this pad is protected (use -pad-password)")
 	default:
 		return "", fmt.Errorf("%s", readAPIError(resp))
 	}

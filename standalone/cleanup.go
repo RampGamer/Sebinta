@@ -8,17 +8,16 @@ import (
 	"time"
 )
 
-// Tarefa agendada opcional (FILE_TTL_DAYS): apaga ficheiros mais antigos que
-// N dias, tanto do disco como da base de dados. Porta de
-// server/services/cleanup.js.
+// Optional scheduled task (FILE_TTL_DAYS): deletes files older than N days,
+// both from disk and the database. Port of server/services/cleanup.js.
 
 const checkInterval = time.Hour
 
-// sweepQuarantine: nada deve ficar na pasta de quarentena de forma
-// permanente — se o processo morrer a meio de um upload (entre o multer/
-// gravação inicial e a mudança para uploads/final/), o resto fica lá. Varre
-// a quarentena e apaga tudo com mais de 1h (nunca associado a nenhum pad, é
-// sempre seguro apagar).
+// sweepQuarantine: nothing should stay in the quarantine folder
+// permanently — if the process dies mid-upload (between multer's initial
+// write and the move to uploads/final/), the rest stays there. Sweeps
+// quarantine and deletes anything older than 1h (never associated with
+// any pad, always safe to delete).
 func sweepQuarantine(cfg *Config) {
 	entries, err := os.ReadDir(cfg.QuarantineDir)
 	if err != nil {
@@ -59,7 +58,7 @@ func runCleanupOnce(cfg *Config, db *sql.DB, hub *wsHub) {
 	for padID := range affected {
 		hub.broadcastPadChanged(padID, nil)
 	}
-	log.Printf("[cleanup] %d ficheiro(s) expirado(s) removido(s) (TTL=%dd).", len(expired), cfg.FileTTLDays)
+	log.Printf("[cleanup] %d expired file(s) removed (TTL=%dd).", len(expired), cfg.FileTTLDays)
 }
 
 func startCleanup(cfg *Config, db *sql.DB, hub *wsHub) {
@@ -71,7 +70,7 @@ func startCleanup(cfg *Config, db *sql.DB, hub *wsHub) {
 	}()
 
 	if cfg.FileTTLDays <= 0 {
-		log.Println("[cleanup] FILE_TTL_DAYS não definido — limpeza automática de ficheiros antigos desativada.")
+		log.Println("[cleanup] FILE_TTL_DAYS not set — automatic cleanup of old files disabled.")
 		return
 	}
 	runCleanupOnce(cfg, db, hub)
@@ -80,5 +79,5 @@ func startCleanup(cfg *Config, db *sql.DB, hub *wsHub) {
 			runCleanupOnce(cfg, db, hub)
 		}
 	}()
-	log.Printf("[cleanup] limpeza automática ativa: ficheiros com mais de %d dia(s) serão removidos.", cfg.FileTTLDays)
+	log.Printf("[cleanup] automatic cleanup enabled: files older than %d day(s) will be removed.", cfg.FileTTLDays)
 }

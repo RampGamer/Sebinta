@@ -1,7 +1,7 @@
 node_modules/
 npm-debug.log*
 
-# Dados persistentes locais (usados fora do Docker, ex.: testes)
+# Local persistent data (used outside Docker, e.g. tests)
 data/*.db
 data/*.db-journal
 data/*.db-wal
@@ -11,32 +11,31 @@ uploads/quarantine/*
 !uploads/final/.gitkeep
 !uploads/quarantine/.gitkeep
 
-# Ambiente
+# Environment
 .env
 .env.local
 
-# Editores / SO
+# Editors / OS
 .vscode/
 .idea/
 .DS_Store
 *.log
 
-# Binários compilados da CLI (cli/sebinta-clean*)
+# Compiled CLI binaries (cli/sebinta-clean*)
 cli/dist/
 cli/sebinta-clean
 cli/sebinta-clean.exe
 
-# Binários compilados do servidor standalone
+# Compiled standalone server binaries
 standalone/dist/
 standalone/sebinta-server
 standalone/sebinta-server.exe
 standalone/standalone
 
-# Binários do cloudflared descarregados por fetch-cloudflared.sh (grandes,
-# não fazem sentido no repositório — go:embed só precisa deles em tempo de
-# compilação local)
+# cloudflared binaries downloaded by fetch-cloudflared.sh (large, don't
+# belong in the repo — go:embed only needs them at local build time)
 standalone/assets/
 
-# App desktop: dependências e builds do Electron
+# Desktop app: Electron dependencies and builds
 desktop/node_modules/
 desktop/dist/

@@ -1,22 +1,22 @@
 'use strict';
 
 /*
- * Lógica principal da página do pad: carregar/gravar texto, sincronização
- * em tempo real (WebSocket com fallback de polling), listagem de
- * ficheiros e as ações de apagar pad / password do pad. O upload em si
- * (drag&drop, colar, barra de progresso, limpeza de metadados) está em
- * upload.js, que usa o objeto global window.Sebinta definido aqui.
+ * Main pad page logic: loading/saving text, real-time sync (WebSocket with
+ * polling fallback), file listing, and the clear-pad / pad-password
+ * actions. The upload itself (drag&drop, paste, progress bar, metadata
+ * cleaning) is in upload.js, which uses the global window.Sebinta object
+ * defined here.
  */
 
 (function () {
   const padId = decodeURIComponent(window.location.pathname.replace(/^\/+/, ''));
 
-  // Downloads na landing ("Cliente"/"Servidor"): os hrefs no HTML já
-  // apontam para a página de releases (fallback funcional sem JS); aqui só
-  // os afinamos para o ficheiro exato da última release, lido em direto da
-  // API do GitHub — assim nunca fica preso a uma versão à medida que saem
-  // releases novas. Falha silenciosa (offline, rate limit, etc.): os
-  // links de fallback continuam a funcionar.
+  // Landing downloads ("Client"/"Server"): the hrefs in the HTML already
+  // point to the releases page (a working fallback without JS); here we
+  // just refine them to the exact file of the latest release, read live
+  // from the GitHub API — so they never get stuck on one version as new
+  // releases ship. Silent failure (offline, rate limit, etc.): the
+  // fallback links keep working.
   function initDownloads() {
     const releaseTag = document.getElementById('dl-release-tag');
     const matchers = {
@@ -56,9 +56,9 @@
       });
   }
 
-  // Raiz "/" sem nome de pad: não há nada válido para carregar (o servidor
-  // rejeitaria com invalid_pad_id) — mostra um ecrã a pedir um nome em vez
-  // de tentar e falhar.
+  // Root "/" with no pad name: there's nothing valid to load (the server
+  // would reject it with invalid_pad_id) — shows a screen asking for a
+  // name instead of trying and failing.
   if (!padId) {
     document.getElementById('pad-header').hidden = true;
     document.getElementById('pad-main').hidden = true;
@@ -101,9 +101,9 @@
 
   let state = { version: 0, hasPassword: false, locked: false };
 
-  // Torna visível se o pad ficou protegido — quem define a password fica
-  // desbloqueado neste browser (cookie de 7 dias), por isso o badge é o
-  // único sinal visual de que a proteção ficou mesmo ativa.
+  // Shows whether the pad became protected — whoever sets the password
+  // stays unlocked in this browser (7-day cookie), so the badge is the
+  // only visual signal that protection actually took effect.
   function updateProtectedBadge() {
     protectedBadge.hidden = !state.hasPassword;
     btnPassword.textContent = state.hasPassword ? '🔒 Password (active)' : '🔒 Password';
@@ -127,8 +127,8 @@
     window.location.href = new URL(raw, window.location.origin + '/').href;
   });
 
-  // Easter egg: troca para um tema "caderno" (mesma página, só reskin via
-  // CSS — ver body.theme-notebook em style.css). Fica guardado por browser.
+  // Easter egg: switches to a "notebook" theme (same page, just a reskin via
+  // CSS — see body.theme-notebook in style.css). Saved per browser.
   const brandLogo = document.getElementById('btn-brand-logo');
   brandLogo.addEventListener('click', () => {
     const next = document.body.classList.toggle('theme-notebook') ? 'notebook' : 'sober';
@@ -290,7 +290,7 @@
     return card;
   }
 
-  // --- pré-visualização de imagens em ecrã inteiro ---
+  // --- full-screen image preview ---
   function openLightbox(file) {
     lightboxImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/preview`);
     lightboxImg.alt = file.name;
@@ -402,7 +402,7 @@
     if (res.ok) {
       document.getElementById('unlock-password').value = '';
       modalUnlock.classList.remove('active');
-      state.version = -1; // força a aplicar o conteúdo recebido a seguir
+      state.version = -1; // forces the content received next to be applied
       refresh();
       connectRealtime();
     } else if (res.status === 429) {
@@ -439,14 +439,14 @@
       try {
         const msg = JSON.parse(ev.data);
         if (msg.type === 'changed') refresh();
-      } catch (e) { /* ignora mensagens inválidas */ }
+      } catch (e) { /* ignores invalid messages */ }
     });
     ws.addEventListener('close', () => {
       clearTimeout(connectTimeout);
       wsFailCount++;
       setStatus('offline', 'live connection lost');
       startPolling();
-      // Tenta religar com backoff, até 30s.
+      // Tries to reconnect with backoff, up to 30s.
       const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(wsFailCount, 5)));
       setTimeout(connectRealtime, delay);
     });
@@ -466,7 +466,7 @@
     }
   }
 
-  // Expõe o essencial para upload.js.
+  // Exposes the essentials for upload.js.
   window.Sebinta = {
     padId,
     csrfToken,

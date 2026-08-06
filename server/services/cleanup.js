@@ -1,10 +1,10 @@
 'use strict';
 
 /*
- * Tarefa agendada opcional (FILE_TTL_DAYS): apaga ficheiros mais antigos que
- * N dias, tanto do disco como da base de dados. Corre dentro do próprio
- * processo Node (setInterval), sem dependências externas — mantém-se o
- * princípio de "sem filas, sem microserviços".
+ * Optional scheduled task (FILE_TTL_DAYS): deletes files older than N days,
+ * both from disk and the database. Runs inside the Node process itself
+ * (setInterval), no external dependencies — keeps the "no queues, no
+ * microservices" principle.
  */
 
 const fs = require('fs');
@@ -14,14 +14,14 @@ const store = require('./padStore');
 const storage = require('./storage');
 const ws = require('../ws');
 
-const CHECK_INTERVAL_MS = 60 * 60 * 1000; // verifica a cada hora
+const CHECK_INTERVAL_MS = 60 * 60 * 1000; // checks every hour
 
 /*
- * Nada deve ficar na quarentena de forma permanente: se o processo morrer a
- * meio de um upload (entre o multer gravar e o ficheiro ser movido para
- * uploads/final/), o resto fica lá. No arranque, varre-se a quarentena e
- * apaga-se tudo o que já lá está há mais de 1 hora (nunca associado a
- * nenhum pad, é sempre seguro apagar).
+ * Nothing should stay in quarantine permanently: if the process dies mid-
+ * upload (between multer saving and the file being moved to
+ * uploads/final/), the rest stays there. On startup, quarantine is swept
+ * and anything older than 1 hour is deleted (never associated with any
+ * pad, always safe to delete).
  */
 function sweepQuarantine() {
   let entries;
@@ -37,7 +37,7 @@ function sweepQuarantine() {
     try {
       const stat = fs.statSync(p);
       if (stat.mtimeMs < cutoff) fs.unlinkSync(p);
-    } catch (_) { /* ignora entradas já removidas por outro processo */ }
+    } catch (_) { /* ignores entries already removed by another process */ }
   }
 }
 
@@ -56,7 +56,7 @@ function runOnce() {
   }
   for (const padId of affectedPads) ws.broadcastPadChanged(padId);
   // eslint-disable-next-line no-console
-  console.log(`[cleanup] ${expired.length} ficheiro(s) expirado(s) removido(s) (TTL=${config.fileTtlDays}d).`);
+  console.log(`[cleanup] ${expired.length} expired file(s) removed (TTL=${config.fileTtlDays}d).`);
 }
 
 function start() {
@@ -65,13 +65,13 @@ function start() {
 
   if (!config.fileTtlDays || config.fileTtlDays <= 0) {
     // eslint-disable-next-line no-console
-    console.log('[cleanup] FILE_TTL_DAYS não definido — limpeza automática de ficheiros antigos desativada.');
+    console.log('[cleanup] FILE_TTL_DAYS not set — automatic cleanup of old files disabled.');
     return;
   }
   runOnce();
   setInterval(runOnce, CHECK_INTERVAL_MS);
   // eslint-disable-next-line no-console
-  console.log(`[cleanup] limpeza automática ativa: ficheiros com mais de ${config.fileTtlDays} dia(s) serão removidos.`);
+  console.log(`[cleanup] automatic cleanup enabled: files older than ${config.fileTtlDays} day(s) will be removed.`);
 }
 
 module.exports = { start, runOnce, sweepQuarantine };

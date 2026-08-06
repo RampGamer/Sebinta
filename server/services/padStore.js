@@ -3,7 +3,7 @@
 const db = require('../db');
 const config = require('../config');
 
-// Segmentos reservados: nunca podem ser o pad (colidem com rotas da app).
+// Reserved segments: can never be the pad (they collide with app routes).
 const RESERVED_TOP_SEGMENTS = new Set([
   'api', 'ws', 'login', 'logout', 'health', 'css', 'js', 'fonts', 'vendor',
   'favicon.ico', 'robots.txt', 'uploads',
@@ -12,14 +12,14 @@ const RESERVED_TOP_SEGMENTS = new Set([
 const PAD_ID_RE = /^[a-zA-Z0-9._~-]+(\/[a-zA-Z0-9._~-]+)*$/;
 
 /**
- * Normaliza e valida um caminho de URL como identificador de pad.
- * Previne path traversal (".."), segmentos vazios e caracteres perigosos.
- * @returns {string|null} o id normalizado, ou null se inválido
+ * Normalizes and validates a URL path as a pad identifier.
+ * Prevents path traversal (".."), empty segments, and dangerous characters.
+ * @returns {string|null} the normalized id, or null if invalid
  */
 function normalizePadId(rawPath) {
   if (typeof rawPath !== 'string') return null;
   let p = rawPath.trim();
-  // remove barra inicial/final
+  // strip leading/trailing slash
   p = p.replace(/^\/+/, '').replace(/\/+$/, '');
   if (!p) return null;
   if (p.length > 200) return null;

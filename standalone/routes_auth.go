@@ -19,8 +19,8 @@ func handleAuthStatus(cfg *Config) http.HandlerFunc {
 	}
 }
 
-// Nota: a password nunca é escrita em logs (ver o log de acesso em main.go,
-// que regista apenas método+caminho, nunca o corpo).
+// Note: the password is never written to logs (see the access log in
+// main.go, which only logs method+path, never the body).
 func handleLogin(cfg *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !csrfValid(r) {

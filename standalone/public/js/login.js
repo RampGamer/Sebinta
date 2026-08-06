@@ -8,7 +8,7 @@ function getCookie(name) {
 function safeNextPath() {
   const params = new URLSearchParams(window.location.search);
   const next = params.get('next') || '/';
-  // Só permite caminhos relativos dentro do próprio site (evita open redirect).
+  // Only allows relative paths within the site itself (avoids open redirect).
   if (!next.startsWith('/') || next.startsWith('//')) return '/';
   return next;
 }

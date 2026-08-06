@@ -16,8 +16,8 @@ services:
     volumes:
       - sebinta_data:/app/data
       - sebinta_uploads:/app/uploads
-    # Sem "ports": a app não é exposta diretamente na máquina. O único
-    # acesso vem do serviço cloudflared, pela rede interna do Docker.
+    # No "ports": the app isn't exposed directly on the machine. The only
+    # access comes from the cloudflared service, over Docker's internal network.
     networks:
       - internal
     healthcheck:
@@ -30,24 +30,24 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    # Modo por omissão: "Quick Tunnel" — não precisa de conta Cloudflare nem
-    # de TUNNEL_TOKEN, mas dá um URL aleatório *.trycloudflare.com que muda
-    # sempre que o container reinicia (sem SLA, só para uso pessoal/testes).
+    # Default mode: "Quick Tunnel" — no Cloudflare account or TUNNEL_TOKEN
+    # needed, but gives a random *.trycloudflare.com URL that changes every
+    # time the container restarts (no SLA, personal/testing use only).
     #
-    # Para um túnel nomeado com URL fixo (recomendado para uso continuado):
-    # 1. Segue os passos do README para obteres um TUNNEL_TOKEN.
-    # 2. Define TUNNEL_TOKEN no .env.
-    # 3. Substitui a linha "command" abaixo por: command: ["tunnel", "run"]
-    #    (o cloudflared lê o token automaticamente da variável de ambiente
-    #    TUNNEL_TOKEN, sem precisar de o passar como argumento).
+    # For a named tunnel with a fixed URL (recommended for ongoing use):
+    # 1. Follow the README steps to get a TUNNEL_TOKEN.
+    # 2. Set TUNNEL_TOKEN in .env.
+    # 3. Replace the "command" line below with: command: ["tunnel", "run"]
+    #    (cloudflared reads the token automatically from the TUNNEL_TOKEN
+    #    environment variable, no need to pass it as an argument).
     command: ["tunnel", "--url", "http://app:3000"]
     depends_on:
       app:
         condition: service_healthy
     networks:
       - internal
-    # Também sem "ports": o cloudflared só faz ligações de saída para a
-    # rede da Cloudflare; o HTTPS público é tratado inteiramente por ela.
+    # Also no "ports": cloudflared only makes outbound connections to
+    # Cloudflare's network; public HTTPS is handled entirely by them.
 
 networks:
   internal:

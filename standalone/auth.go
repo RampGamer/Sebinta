@@ -30,8 +30,8 @@ const (
 	unlockedCookie = "fp_unlocked"
 )
 
-// --- cookies assinados (HMAC-SHA256, formato próprio — não precisa de ser
-// compatível com o servidor Node, cada deployment tem a sua própria sessão) ---
+// --- signed cookies (HMAC-SHA256, own format — doesn't need to be
+// compatible with the Node server, each deployment has its own session) ---
 
 func signValue(secret, value string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
@@ -40,7 +40,7 @@ func signValue(secret, value string) string {
 }
 
 func unsignValue(secret, signed string) (string, bool) {
-	idx := len(signed) - 64 - 1 // 64 hex chars de SHA-256 + '.'
+	idx := len(signed) - 64 - 1 // 64 hex chars of SHA-256 + '.'
 	if idx <= 0 || signed[idx] != '.' {
 		return "", false
 	}
@@ -66,12 +66,12 @@ func cookieBase(cfg *Config, name, value string, maxAge time.Duration, httpOnly 
 	}
 }
 
-// safeCompare: comparação em tempo constante para evitar timing attacks na
-// password do site. Espelha server/auth.js#safeCompare.
+// safeCompare: constant-time comparison to avoid timing attacks on the
+// site password. Mirrors server/auth.js#safeCompare.
 func safeCompare(a, b string) bool {
 	ba, bb := []byte(a), []byte(b)
 	if len(ba) != len(bb) {
-		subtle.ConstantTimeCompare(ba, ba) // mantém o custo previsível mesmo com tamanhos diferentes
+		subtle.ConstantTimeCompare(ba, ba) // keeps the cost predictable even with different lengths
 		return false
 	}
 	return subtle.ConstantTimeCompare(ba, bb) == 1
@@ -100,7 +100,7 @@ func clearSiteAuthCookie(cfg *Config, w http.ResponseWriter) {
 	http.SetCookie(w, c)
 }
 
-// --- CSRF (double-submit cookie, mesmo padrão que server/auth.js) ---
+// --- CSRF (double-submit cookie, same pattern as server/auth.js) ---
 
 func ensureCsrfCookie(cfg *Config, w http.ResponseWriter, r *http.Request) string {
 	if c, err := r.Cookie(csrfCookie); err == nil && c.Value != "" {
@@ -123,7 +123,7 @@ func csrfValid(r *http.Request) bool {
 	return safeCompare(c.Value, header)
 }
 
-// --- password por pad ---
+// --- per-pad password ---
 
 func hashPadPassword(password string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -177,15 +177,15 @@ func markPadUnlocked(cfg *Config, w http.ResponseWriter, r *http.Request, padID 
 	for h := range set {
 		arr = append(arr, h)
 	}
-	// Limite defensivo para o cookie não crescer sem controlo (mesmo que
-	// server/auth.js — mantém só os últimos 200).
+	// Defensive cap so the cookie doesn't grow unbounded (same as
+	// server/auth.js — keeps only the last 200).
 	if len(arr) > 200 {
 		arr = arr[len(arr)-200:]
 	}
 	b, _ := json.Marshal(arr)
-	// O valor assinado tem de ser seguro para cookie-octet (RFC 6265): JSON
-	// cru contém aspas, que o sanitizador de cookies do Go remove em
-	// silêncio, corrompendo o valor. base64url evita isso.
+	// The signed value must be safe as a cookie-octet (RFC 6265): raw JSON
+	// contains quotes, which Go's cookie sanitizer silently strips,
+	// corrupting the value. base64url avoids that.
 	encoded := base64.RawURLEncoding.EncodeToString(b)
 	http.SetCookie(w, cookieBase(cfg, unlockedCookie, signValue(cfg.CookieSecret, encoded), 7*24*time.Hour, true))
 }

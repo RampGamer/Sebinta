@@ -1,11 +1,11 @@
 'use strict';
 
-// Aplica o tema "caderno" antes do resto da página pintar, para não haver
-// flash do tema sóbrio a seguir a um reload. Tem de ser um ficheiro
-// externo (não inline) — o CSP do servidor é script-src 'self', que
-// bloqueia scripts inline sem exceção.
+// Applies the "notebook" theme before the rest of the page paints, so
+// there's no flash of the sober theme after a reload. Has to be an
+// external file (not inline) — the server's CSP is script-src 'self',
+// which blocks inline scripts with no exceptions.
 try {
   if (localStorage.getItem('sebinta-theme') === 'notebook') {
     document.body.classList.add('theme-notebook');
   }
-} catch (e) { /* localStorage indisponível (modo privado, etc.) — ignora */ }
+} catch (e) { /* localStorage unavailable (private mode, etc.) — ignore */ }

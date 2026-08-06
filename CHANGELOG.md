@@ -1,68 +1,73 @@
-# Changelog — 6 de agosto de 2026
+# Changelog — August 6, 2026
 
-Resumo do trabalho feito hoje no Sebinta (antigo Filepad), da rebrand até às releases `v1.4.0`–`v1.7.0`.
+Summary of today's work on Sebinta (formerly Filepad), from the rebrand through releases `v1.4.0`–`v1.8.2`.
 
 ## Rebrand: Filepad → Sebinta
 
-- Nome, ícone (caderno de espiral), títulos de janela, logs, canais IPC e nomes de ficheiros de dados (`filepad.db`/`filepad.log` → `sebinta.db`/`sebinta.log`) atualizados em todas as versões: web, servidor Node, servidor standalone em Go, CLI e app desktop.
-- Repositório GitHub renomeado duas vezes: `RampGamer/filepad` → `RampGamer/sebinta` → `RampGamer/Sebinta` (maiúscula). O GitHub redireciona automaticamente clones e links antigos.
-- `go.mod`, links do README e nomes de módulo atualizados para o novo caminho do repositório.
+- Name, icon (spiral notebook), window titles, logs, IPC channels, and data filenames (`filepad.db`/`filepad.log` → `sebinta.db`/`sebinta.log`) updated across every version: web, Node server, standalone Go server, CLI, and desktop app.
+- GitHub repository renamed twice: `RampGamer/filepad` → `RampGamer/sebinta` → `RampGamer/Sebinta` (capitalized). GitHub automatically redirects old clones and links.
+- `go.mod`, README links, and module names updated to the new repository path.
 
-## Cabeçalho do pad e separadores no desktop
+## Pad header and desktop tabs
 
-- Caminho do pad passou a ser um campo editável (📂 + caixa de texto + "Ir") na mesma linha do Password/Limpar pad, em vez de um nome fixo com um botão de limpar metadados à parte.
-- Editor deixou de ter caixa visível (sem borda, sem contraste de fundo) e passou a preencher a janela toda.
-- App desktop ganhou um sistema de separadores estilo browser — um `<webview>` por separador, cada um com a sua própria ligação em tempo real, trocar é instantâneo. O botão ⚙ (mudar servidor) passou para o canto esquerdo da faixa de separadores, por ser uma definição da janela e não de um pad específico. Separadores abertos ficam guardados entre arranques.
-- Corrigido um bug de especificidade CSS em que a página inicial (escolher nome de pad) por vezes não desaparecia depois de um pad carregar (`[hidden]` a perder para uma regra de autor com `display:flex`).
+- The pad path became an editable field (📂 + text box + "Go") on the same line as Password/Clear pad, instead of a fixed name with a separate metadata-cleaning button.
+- The editor lost its visible box (no border, no background contrast) and now fills the whole window.
+- The desktop app gained a browser-style tab system — one `<webview>` per tab, each with its own real-time connection, switching is instant. The ⚙ button (change server) moved to the left of the tab strip, since it's a window-level setting, not a specific pad's. Open tabs are saved across launches.
+- Fixed a CSS specificity bug where the landing screen (choose a pad name) sometimes didn't disappear after a pad loaded (`[hidden]` losing to an author rule with `display:flex`).
 
-## Logótipo "Sebinta" e o easter egg do tema caderno
+## "Sebinta" logo and the notebook-theme easter egg
 
-- Adicionado um logótipo "sebinta" centrado no cabeçalho (grelha de 3 colunas: campo do pad + estado à esquerda, logo ao centro, ações à direita), com o "bin" destacado a marca-texto — referência direta à etimologia do nome (Sebenta + **bin**ário).
-- Clicar no logótipo é um easter egg: troca a página toda para um tema "caderno" — papel pautado com margem vermelha no editor, ficheiros como post-its coloridos, botões Password/Limpar pad como carimbos de tinta, espiral de caderno na margem esquerda. Tudo via uma classe `body.theme-notebook` a reskinnar o DOM real (sem duplicar markup). A escolha fica guardada por browser (`localStorage`) e aplica-se antes do primeiro render, para não haver flash do tema errado.
-- Depois de comparar a implementação real lado a lado com o mockup de design, foram corrigidos vários problemas de fidelidade:
-  - As fontes do tema (Caveat, Permanent Marker) estavam a falhar silenciosamente — `/fonts/*` devolvia a página do pad em vez do ficheiro da fonte, por faltar a rota estática e por "fonts" não estar na lista de segmentos reservados para IDs de pad. Corrigido em paralelo no servidor Node (`server/index.js`, `services/padStore.js`) e no servidor standalone em Go (`main.go`, `padstore.go`).
-  - O tema caderno inicialmente era só um cartão pequeno, centrado, com uma secretária escura à volta — corrigido para preencher a janela toda (tal como o tema normal), mantendo a espiral, o papel pautado e a sombra.
-  - Um bug de ordem de pintura CSS fazia a espiral aparecer como uma barra escura sólida em vez de círculos — resolvido dando um fundo próprio à área de padding do `main`.
-  - Tamanhos e cores ajustados para bater certo com o mockup: logótipo maior, seta "Ir →", botões Password/Limpar pad com as cores de carimbo do mockup (não o azul da app), faixa de ficheiros com o botão de upload integrado.
-- Os separadores da app desktop (uma janela Electron à parte da página de cada separador) foram sincronizados com o easter egg: cada separador avisa a janela principal do seu tema via `ipc-message`, e a barra de separadores (⚙ + abas) muda para o visual de post-its sempre que o separador ativo estiver no modo caderno, voltando ao escuro normal nos separadores que continuam no tema sóbrio.
+- Added a centered "sebinta" logo in the header (3-column grid: pad field + status on the left, logo centered, actions on the right), with "bin" highlighted like a text marker — a direct reference to the name's etymology (Sebenta + **bin**ary).
+- Clicking the logo is an easter egg: it swaps the whole page to a "notebook" theme — ruled paper with a red margin in the editor, files as colored post-its, Password/Clear pad buttons as ink stamps, a notebook spiral in the left margin. All via a `body.theme-notebook` class reskinning the real DOM (no duplicated markup). The choice is saved per browser (`localStorage`) and applies before the first render, so there's no flash of the wrong theme.
+- After comparing the real implementation side by side with the design mockup, several fidelity issues were fixed:
+  - The theme's fonts (Caveat, Permanent Marker) were failing silently — `/fonts/*` returned the pad page instead of the font file, because the static route was missing and "fonts" wasn't in the list of reserved segments for pad IDs. Fixed in parallel in the Node server (`server/index.js`, `services/padStore.js`) and the standalone Go server (`main.go`, `padstore.go`).
+  - The notebook theme was initially just a small, centered card with a dark desk around it — fixed to fill the whole window (just like the normal theme), keeping the spiral, ruled paper, and shadow.
+  - A CSS paint-order bug made the spiral show up as a solid dark bar instead of circles — fixed by giving `main`'s padding area its own background.
+  - Sizes and colors adjusted to match the mockup: bigger logo, "Go →" arrow, Password/Clear pad buttons with the mockup's stamp colors (not the app's blue), files bar with the upload button integrated.
+- The desktop app's tabs (an Electron window separate from each tab's page) were synced with the easter egg: each tab tells the main window its theme via `ipc-message`, and the tab strip (⚙ + tabs) switches to the post-it look whenever the active tab is in notebook mode, going back to normal dark for tabs still in the sober theme.
 
-## Downloads na landing, legibilidade do tema caderno, e correções
+## Landing downloads, notebook-theme legibility, and fixes
 
-- **Página raiz "/"**: por baixo do formulário "Abrir pad", nova secção com dois grupos — Cliente (app desktop) e Servidor (binário standalone) — cada um com 4 ícones (Windows, Linux, macOS, GitHub), logótipos originais em SVG inline (não emoji). Os links são resolvidos em tempo real pela API do GitHub (`releases/latest`), por isso nunca ficam presos a uma versão à medida que saem releases novas; sem JS ou se a API falhar (ex.: repositório ainda privado), caem de volta para a página de releases em vez de um link morto. macOS assume Apple Silicon por omissão, com um link "Intel" por baixo. Foi preciso abrir `connect-src` do CSP para `api.github.com`, em paralelo no servidor Node (`server/middleware/security.js`) e no standalone em Go (`standalone/security.go`).
-- **Logótipo "sebinta" maior no tema sóbrio** — `1.05rem→1.4rem`, ícone `22px→28px`.
-- **Tema caderno bem mais legível** — não só o nome do pad e o estado "em direto" (que estavam pequenos e em contraste fraco), mas também os botões de ação, o cabeçalho "FICHEIROS", o botão de upload, o aviso de arrastar ficheiros, e o nome/tamanho dos cartões de ficheiro. A barra de progresso "a enviar…" nem tinha estilo de papel — ficava a caixa escura da UI base a flutuar sobre o papel; agora tem o mesmo aspeto de post-it tracejado das outras secções. Nas tabs da app desktop, letra maior (`1rem→1.3rem`) quando o separador ativo está no tema caderno.
-- **Botão "✕" das tabs do desktop** encostado sempre à borda direita da tab (`flex:1 1 auto` no nome), em vez de logo a seguir ao nome — antes, em nomes curtos, ficava colado ao texto com espaço morto até à borda.
-- **Corrigido um bug de CSP**: o script inline no `<head>` do `pad.html` que aplicava o tema caderno guardado no `localStorage` estava a ser bloqueado por `script-src 'self'` — o tema nunca sobrevivia a um reload, só ficava ativo até se clicar de novo no logótipo. Movido para `public/js/theme-init.js` (ficheiro externo, mesma posição logo após `<body>`, sem flash do tema errado).
-- **README simplificado e em inglês** — o README principal passou de ~235 para menos de 80 linhas; a walkthrough do túnel Cloudflare, referência de configuração, operações Docker, backup/restore e troubleshooting mudaram-se para `docs/DEPLOYMENT.md`. Screenshot da landing atualizado para mostrar a nova secção de downloads.
+- **Root page "/"**: below the "Open pad" form, a new section with two groups — Client (desktop app) and Server (standalone binary) — each with 4 icons (Windows, Linux, macOS, GitHub), original logos as inline SVG (not emoji). Links are resolved live via the GitHub API (`releases/latest`), so they never get stuck on one version as new releases ship; without JS or if the API fails (e.g. the repo is still private), they fall back to the releases page instead of a dead link. macOS defaults to Apple Silicon, with an "Intel" link underneath. Required opening `connect-src` in the CSP for `api.github.com`, in parallel in the Node server (`server/middleware/security.js`) and the standalone Go server (`standalone/security.go`).
+- **Bigger "sebinta" logo in the sober theme** — `1.05rem→1.4rem`, icon `22px→28px`.
+- **Notebook theme much more readable** — not just the pad name and the "live" status (which were small and low-contrast), but also the action buttons, the "FILES" header, the upload button, the drag-files hint, and the file card name/size. The "uploading…" progress bar didn't even have paper styling — it was the base UI's dark box floating over the paper; now it has the same dashed post-it look as the other sections. In the desktop app's tabs, bigger text (`1rem→1.3rem`) when the active tab is in notebook theme.
+- **Desktop tabs' "✕" button** now always anchored to the tab's right edge (`flex:1 1 auto` on the name), instead of right after the name — before, on short names, it sat flush against the text with dead space to the edge.
+- **Fixed a CSP bug**: the inline script in `pad.html`'s `<head>` that applied the notebook theme saved in `localStorage` was being blocked by `script-src 'self'` — the theme never survived a reload, it only stayed active until clicking the logo again. Moved to `public/js/theme-init.js` (external file, same position right after `<body>`, no flash of the wrong theme).
+- **README simplified and in English** — the main README went from ~235 to under 80 lines; the Cloudflare tunnel walkthrough, config reference, Docker operations, backup/restore, and troubleshooting moved to `docs/DEPLOYMENT.md`. Landing screenshot updated to show the new downloads section.
 
-## Correções de password do pad, --port no standalone, e ajustes na secção de downloads
+## Pad-password fixes, --port on the standalone server, and downloads-section tweaks
 
-- **Badge "Protegido" sem refletir sem F5**: definir (ou remover) a password de um pad nunca avisava os outros clientes já ligados via WebSocket — só via texto/ficheiros. Agora `POST /api/pad/password` também dispara `broadcastPadChanged`, em paralelo no servidor Node e no standalone em Go. Confirmado com dois browsers no mesmo pad: o badge aparece/desaparece, e quem não tem a password fica bloqueado, sem reload.
-- **Password errada no unlock mandava para `/login?next=...`**: `/api/pad/unlock` devolvia `401` numa password errada, e o `api()` do frontend trata qualquer `401` como "falta autenticação do site" e redireciona — por isso a tentativa seguinte (já com a password certa) ficava perdida nesse fluxo errado. Mudado para `403` nos dois servidores; confirmado que errar e depois acertar já desbloqueia à primeira.
-- **`--port` no servidor standalone** — `./sebinta-server --port 8080` (prioridade sobre `PORT`/`.env`).
-- **Downloads da landing**: Cliente e Servidor deixaram de estar lado a lado — agora um por cima do outro — e os ícones ficaram bem maiores (quadrados, 22px→36px). Mantida a resolução em tempo real via API do GitHub (não um link estático para `releases/latest`, nem uma versão hardcoded no HTML) — os nomes dos binários incluem a versão, por isso só um link construído a partir da última release por API garante um download direto que não fica preso a uma versão antiga.
+- **"Protected" badge not updating without F5**: setting (or removing) a pad's password never notified other clients already connected via WebSocket — only text/file changes did. Now `POST /api/pad/password` also fires `broadcastPadChanged`, in parallel in the Node server and the standalone Go server. Confirmed with two browsers on the same pad: the badge appears/disappears, and anyone without the password gets locked out, no reload needed.
+- **Wrong password on unlock sent you to `/login?next=...`**: `/api/pad/unlock` returned `401` on a wrong password, and the frontend's `api()` treats any `401` as "site auth required" and redirects — so the next attempt (with the correct password) got lost in that wrong flow. Changed to `403` in both servers; confirmed that getting it wrong and then right now unlocks on the first correct try.
+- **`--port` on the standalone server** — `./sebinta-server --port 8080` (takes priority over `PORT`/`.env`).
+- **Landing downloads**: Client and Server are no longer side by side — now one above the other — and the icons got much bigger (squares, 22px→36px). Kept the live resolution via the GitHub API (not a static link to `releases/latest`, nor a hardcoded version in the HTML) — binary filenames include the version, so only a link built from the latest release via the API guarantees a direct download that doesn't get stuck on an old version.
 
-## Site e app desktop traduzidos para inglês, e fix do auto-bloqueio da password
+## Web app and desktop app translated to English, and password self-lockout fix
 
-- **Interface toda em inglês**: `public/pad.html`, `login.html`, `app.js`, `upload.js`, `login.js`, e a app desktop (`shell.html`, `shell.js`, `settings.html`) estavam todos em português desde o início do projeto — só o README principal e o CHANGELOG tinham sido tratados antes. Traduzido texto visível (botões, modais, toasts, títulos, placeholders); comentários de código ficam em português, propositadamente (não são visíveis a quem usa o site/app).
-- **Screenshots do README atualizados** (`docs/screenshots/landing.png`, `pad.png`, `desktop-app.png`) para refletirem a interface em inglês e a nova secção de downloads.
-- **Fix: definir uma password bloqueava logo quem a definiu.** A correção anterior (broadcast ao definir password) tinha uma condição de corrida — a mensagem via WebSocket chegava ao próprio autor antes do browser aplicar a cookie de desbloqueio da resposta HTTP, e o `refresh()` que isso disparava via-o como bloqueado imediatamente a seguir a definir a password. Corrigido invertendo a ordem: a resposta HTTP (com a cookie) é sempre enviada antes do broadcast, nos dois servidores.
+- **Interface fully in English**: `public/pad.html`, `login.html`, `app.js`, `upload.js`, `login.js`, and the desktop app (`shell.html`, `shell.js`, `settings.html`) had all been Portuguese since the start of the project — only the main README and the CHANGELOG had been handled before. Translated visible text (buttons, modals, toasts, titles, placeholders); code comments were initially left in Portuguese on purpose (not visible to anyone using the site/app) — see the entry below, where the whole repository (including comments) was translated too.
+- **README screenshots updated** (`docs/screenshots/landing.png`, `pad.png`, `desktop-app.png`) to reflect the English interface and the new downloads section.
+- **Fix: setting a password immediately locked out the person who set it.** The earlier fix (broadcasting on password set) had a race condition — the WebSocket message reached the author themselves before the browser applied the HTTP response's unlock cookie, and the `refresh()` that triggered saw them as locked right after setting the password. Fixed by reversing the order: the HTTP response (with the cookie) is always sent before the broadcast, in both servers.
 
-## Releases publicadas
+## Full repository translated to English
 
-| Versão | Destaques |
+- **Every remaining piece of Portuguese text translated**: code comments across the Node server, the standalone Go server, the CLI, the desktop app, and the frontend; CLI `--help`/usage text and error messages; server/CLI console/log output; config file comments (`.env.example`, `docker-compose.yml`, `start.sh`, `Dockerfile`, `.gitignore`); and this changelog itself. User-visible strings had already been translated in the previous entry — this pass covered what a developer browsing the source or running the tools from a terminal would see.
+
+## Published releases
+
+| Version | Highlights |
 |---|---|
-| `v1.4.0` | Rebrand completo para Sebinta |
-| `v1.5.0` | Logótipo centrado + easter egg do tema caderno (primeira versão) |
-| `v1.6.0` | Nomes dos binários passam a incluir a versão; correções de fidelidade do tema caderno |
-| `v1.7.0` | Tema caderno a ocupar o ecrã todo; separadores do desktop sincronizados com o tema |
-| `v1.8.0` | Downloads (Cliente/Servidor) na landing; tema caderno mais legível; fix do "✕" das tabs; fix de CSP no tema; README simplificado |
-| `v1.8.1` | Fix do badge de password sem F5; fix do redirect para /login numa password errada; `--port` no standalone; downloads empilhados com ícones maiores |
-| `v1.8.2` | Site e app desktop traduzidos para inglês; fix do auto-bloqueio ao definir password; screenshots do README atualizados |
+| `v1.4.0` | Full rebrand to Sebinta |
+| `v1.5.0` | Centered logo + notebook-theme easter egg (first version) |
+| `v1.6.0` | Binary filenames now include the version; notebook-theme fidelity fixes |
+| `v1.7.0` | Notebook theme fills the whole screen; desktop tabs synced with the theme |
+| `v1.8.0` | Downloads (Client/Server) on the landing page; more readable notebook theme; tab "✕" fix; theme CSP fix; simplified README |
+| `v1.8.1` | Fix for the password badge needing F5; fix for the redirect to /login on a wrong password; `--port` on the standalone server; stacked downloads with bigger icons |
+| `v1.8.2` | Web app and desktop app translated to English; fix for the password self-lockout; updated README screenshots |
+| `v1.8.3` | Full repository translated to English (code comments, CLI, logs, config files, changelog) |
 
-Cada release inclui: servidor standalone em Go (`sebinta-server-vX.Y.Z-*`, 4 plataformas), CLI de limpeza de metadados (`sebinta-clean-vX.Y.Z-*`, 4 plataformas) e app desktop Electron (`Sebinta-desktop-vX.Y.Z-*`: AppImage, `.exe` portátil, `.zip` macOS x64/arm64), mais um `SHA256SUMS.txt`.
+Each release includes: standalone Go server (`sebinta-server-vX.Y.Z-*`, 4 platforms), metadata-cleaning CLI (`sebinta-clean-vX.Y.Z-*`, 4 platforms), and Electron desktop app (`Sebinta-desktop-vX.Y.Z-*`: AppImage, portable `.exe`, macOS x64/arm64 `.zip`), plus a `SHA256SUMS.txt`.
 
-## Problemas reportados e resolvidos hoje
+## Issues reported and resolved today
 
-- **"A versão Linux não abre"**: não era bug — o binário standalone tinha mesmo arrancado com sucesso à primeira tentativa e ficou a correr em segundo plano (sem terminal visível); as tentativas seguintes falhavam com "porta já em uso" por essa razão. Documentado o passo em falta (`chmod +x`, perdido no download) no README principal, no `standalone/README.md`, e nas notas da release `v1.7.0`.
-- **AppImage da app desktop**: falhava com `dlopen(): error loading libfuse.so.2` em distros que já não trazem `libfuse2` por omissão (Kali, Debian/Ubuntu 22.04+, Fedora, entre outras — o runtime por omissão do AppImage precisa da lib de compatibilidade FUSE2, não FUSE3). Confirmado que `./Sebinta-*.AppImage --appimage-extract-and-run` resolve sem precisar de root. Documentado no `desktop/README.md` e nas notas da release `v1.7.0`.
+- **"The Linux version doesn't open"**: not a bug — the standalone binary had actually started successfully on the first try and was running in the background (no visible terminal); subsequent attempts failed with "port already in use" for that reason. Documented the missing step (`chmod +x`, lost on download) in the main README, in `standalone/README.md`, and in the `v1.7.0` release notes.
+- **Desktop app's AppImage**: failed with `dlopen(): error loading libfuse.so.2` on distros that no longer ship `libfuse2` by default (Kali, Debian/Ubuntu 22.04+, Fedora, among others — the AppImage's default runtime needs the FUSE2 compatibility lib, not FUSE3). Confirmed that `./Sebinta-*.AppImage --appimage-extract-and-run` resolves it without needing root. Documented in `desktop/README.md` and in the `v1.7.0` release notes.

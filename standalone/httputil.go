@@ -5,9 +5,9 @@ import (
 	"net/http"
 )
 
-// currentConfig é definido uma vez em main() — evita ter de passar *Config
-// através de todas as assinaturas de middleware (o próprio processo só
-// tem uma configuração, carregada uma vez no arranque).
+// currentConfig is set once in main() — avoids passing *Config through
+// every middleware signature (the process itself only has one
+// configuration, loaded once at startup).
 var currentConfig *Config
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

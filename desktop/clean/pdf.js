@@ -1,24 +1,24 @@
 'use strict';
 
 /*
- * Limpeza de metadados de PDF, portada para Node puro (processo principal
- * do Electron) a partir da antiga public/js/metadata/pdf-clean.js — mesma
- * lógica, mesma biblioteca (pdf-lib), só a correr fora do browser:
+ * PDF metadata cleaning, ported to plain Node (Electron main process) from
+ * the old public/js/metadata/pdf-clean.js — same logic, same library
+ * (pdf-lib), just running outside the browser:
  *
- * - Limpa o dicionário Info (Title, Author, Subject, Keywords, Creator,
- *   Producer, datas de criação/modificação).
- * - Remove a stream de metadados XMP referenciada pelo catálogo.
- * - pdfDoc.save() reescreve o documento de raiz, descartando quaisquer
- *   "incremental updates" antigos que pudessem conter versões anteriores
- *   do documento com metadados.
+ * - Clears the Info dictionary (Title, Author, Subject, Keywords, Creator,
+ *   Producer, creation/modification dates).
+ * - Removes the XMP metadata stream referenced by the catalog.
+ * - pdfDoc.save() rewrites the document from scratch, discarding any old
+ *   "incremental updates" that could contain earlier versions of the
+ *   document with metadata.
  */
 
 const { PDFDocument, PDFName } = require('pdf-lib');
 
 /**
- * @param {Buffer} inputBuffer conteúdo do ficheiro .pdf
- * @returns {Promise<Buffer>} PDF limpo
- * @throws {Error} se o PDF for inválido, encriptado ou corrompido
+ * @param {Buffer} inputBuffer contents of the .pdf file
+ * @returns {Promise<Buffer>} cleaned PDF
+ * @throws {Error} if the PDF is invalid, encrypted, or corrupted
  */
 async function cleanPdf(inputBuffer) {
   let pdfDoc;
@@ -29,7 +29,7 @@ async function cleanPdf(inputBuffer) {
       ignoreEncryption: false,
     });
   } catch (e) {
-    throw new Error('PDF inválido, encriptado ou corrompido — não foi possível limpar os metadados.');
+    throw new Error('Invalid, encrypted, or corrupted PDF — could not clean the metadata.');
   }
 
   try {
@@ -44,14 +44,14 @@ async function cleanPdf(inputBuffer) {
     pdfDoc.setModificationDate(epoch);
     pdfDoc.catalog.delete(PDFName.of('Metadata'));
   } catch (e) {
-    throw new Error('Falha ao remover metadados do PDF.');
+    throw new Error('Failed to remove the PDF metadata.');
   }
 
   let outBytes;
   try {
     outBytes = await pdfDoc.save({ useObjectStreams: false });
   } catch (e) {
-    throw new Error('Falha ao gravar o PDF limpo.');
+    throw new Error('Failed to save the cleaned PDF.');
   }
   return Buffer.from(outBytes);
 }

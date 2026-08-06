@@ -20,7 +20,7 @@ function fileToJson(f) {
   };
 }
 
-/** Extrai e valida o id do pad a partir de ?id=... em todas as rotas deste router. */
+/** Extracts and validates the pad id from ?id=... on every route in this router. */
 function requirePadId(req, res, next) {
   const raw = typeof req.query.id === 'string' ? req.query.id : '';
   const padId = store.normalizePadId(raw);
@@ -30,7 +30,7 @@ function requirePadId(req, res, next) {
 }
 router.use(requirePadId);
 
-// GET /api/pad?id=... -> estado atual do pad (ou apenas "locked" se tiver password)
+// GET /api/pad?id=... -> current pad state (or just "locked" if it has a password)
 router.get('/', (req, res) => {
   const pad = store.getOrCreatePad(req.padId);
   const hasPassword = Boolean(pad.password_hash);
@@ -50,7 +50,7 @@ router.get('/', (req, res) => {
   });
 });
 
-// GET /api/pad/poll?id=...&version=N -> long-ish poll simples (fallback sem WebSocket)
+// GET /api/pad/poll?id=...&version=N -> simple long-ish poll (fallback without WebSocket)
 router.get('/poll', (req, res) => {
   const pad = store.getPad(req.padId);
   const version = pad ? pad.version : 0;
@@ -59,7 +59,7 @@ router.get('/poll', (req, res) => {
 
 router.use(express.json({ limit: '4mb' }));
 
-// PUT /api/pad?id=... { content } -> grava o texto (autosave debounced no cliente)
+// PUT /api/pad?id=... { content } -> saves the text (client-side debounced autosave)
 router.put('/', padWriteLimiter, auth.csrfProtection, (req, res) => {
   const pad = store.getOrCreatePad(req.padId);
   if (pad.password_hash && !auth.isPadUnlocked(req, req.padId, pad)) {
@@ -74,7 +74,7 @@ router.put('/', padWriteLimiter, auth.csrfProtection, (req, res) => {
   res.json({ ok: true, version: updated.version });
 });
 
-// DELETE /api/pad?id=... -> apaga conteúdo de texto e todos os ficheiros associados
+// DELETE /api/pad?id=... -> deletes the text content and all associated files
 router.delete('/', auth.csrfProtection, (req, res) => {
   const pad = store.getOrCreatePad(req.padId);
   if (pad.password_hash && !auth.isPadUnlocked(req, req.padId, pad)) {
@@ -87,7 +87,7 @@ router.delete('/', auth.csrfProtection, (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/pad/password?id=... { password } -> define/remove a password deste pad
+// POST /api/pad/password?id=... { password } -> sets/removes this pad's password
 router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => {
   const pad = store.getOrCreatePad(req.padId);
   if (pad.password_hash && !auth.isPadUnlocked(req, req.padId, pad)) {
@@ -107,23 +107,23 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
   store.setPadPassword(req.padId, hash);
   auth.markPadUnlocked(req, res, req.padId);
   res.json({ ok: true, hasPassword: true });
-  // Broadcast só depois da resposta (que já leva a cookie de desbloqueio)
-  // ter sido enviada — nunca antes: quem definiu a password já tem uma
-  // ligação WebSocket aberta neste pad, e se o "changed" chegasse primeiro,
-  // o refresh() que ele dispara ia usar o cookie ainda antigo e via-se a si
-  // próprio como bloqueado, logo depois de definir a password.
+  // Broadcast only after the response (which already carries the unlock
+  // cookie) has been sent — never before: whoever set the password already
+  // has a WebSocket connection open on this pad, and if "changed" arrived
+  // first, the refresh() it triggers would use the still-old cookie and
+  // see itself as locked, right after setting the password.
   ws.broadcastPadChanged(req.padId);
 });
 
-// POST /api/pad/unlock?id=... { password } -> tenta desbloquear um pad protegido
+// POST /api/pad/unlock?id=... { password } -> tries to unlock a protected pad
 router.post('/unlock', padPasswordLimiter, auth.csrfProtection, (req, res) => {
   const pad = store.getOrCreatePad(req.padId);
   if (!pad.password_hash) return res.json({ ok: true });
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
   if (!auth.verifyPadPassword(password, pad.password_hash)) {
-    // 403, não 401: o cliente trata qualquer 401 como "falta autenticação do
-    // site" e redireciona para /login (ver api() em app.js) — uma password
-    // de pad errada não tem nada a ver com isso.
+    // 403, not 401: the client treats any 401 as "site auth required" and
+    // redirects to /login (see api() in app.js) — a wrong pad password has
+    // nothing to do with that.
     return res.status(403).json({ error: 'invalid_password' });
   }
   auth.markPadUnlocked(req, res, req.padId);

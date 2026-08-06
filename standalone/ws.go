@@ -10,10 +10,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Sincronização quase em tempo real entre dispositivos com o mesmo pad
-// aberto — porta de server/ws.js. Um WebSocket por aba, agrupado por pad
-// ("room"); quando o pad muda, todos os clientes ligados recebem uma
-// notificação e voltam a pedir o estado atual ao servidor.
+// Near-real-time sync between devices with the same pad open — port of
+// server/ws.js. One WebSocket per tab, grouped by pad ("room"); when the
+// pad changes, every connected client gets notified and re-fetches the
+// current state from the server.
 
 type wsHub struct {
 	mu    sync.Mutex
@@ -68,14 +68,14 @@ func (h *wsHub) broadcastPadChanged(padID string, extra map[string]any) {
 var wsUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	// Sem verificação de Origin: a autorização real é feita por cookie
-	// assinado em isWSRequestAuthorized, tal como no servidor Node.
+	// No Origin check: the real authorization happens via signed cookie in
+	// isWSRequestAuthorized, just like in the Node server.
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// isWSRequestAuthorized replica server/ws.js#isRequestAuthorized: lê os
-// cookies assinados fp_site/fp_unlocked diretamente do pedido de upgrade
-// (o mesmo mecanismo usado pelas rotas HTTP normais).
+// isWSRequestAuthorized mirrors server/ws.js#isRequestAuthorized: reads the
+// signed fp_site/fp_unlocked cookies directly from the upgrade request
+// (the same mechanism the regular HTTP routes use).
 func isWSRequestAuthorized(cfg *Config, db *sql.DB, r *http.Request, padID string) bool {
 	if cfg.SitePassword != "" {
 		c, err := r.Cookie(siteCookie)

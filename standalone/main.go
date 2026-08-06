@@ -23,7 +23,7 @@ func main() {
 
 	logFile, err := setupLogging(cfg)
 	if err != nil {
-		log.Fatalf("não foi possível preparar o ficheiro de logs (%s): %v", cfg.LogPath, err)
+		log.Fatalf("could not prepare the log file (%s): %v", cfg.LogPath, err)
 	}
 	defer logFile.Close()
 
@@ -35,7 +35,7 @@ func main() {
 
 	webFS, err := fs.Sub(embeddedPublic, "public")
 	if err != nil {
-		log.Fatalf("não foi possível preparar os assets embutidos: %v", err)
+		log.Fatalf("could not prepare the embedded assets: %v", err)
 	}
 
 	mux := http.NewServeMux()
@@ -75,17 +75,17 @@ func main() {
 
 	mux.HandleFunc("GET /ws", handleWS(cfg, db, hub))
 
-	// Qualquer outro caminho é um pad: serve a página do pad em SPA. A
-	// validação do próprio nome do pad acontece do lado do cliente.
+	// Any other path is a pad: serve the pad page as an SPA. Validating the
+	// pad name itself happens client-side.
 	mux.HandleFunc("GET /", siteAuthPageGate(cfg)(func(w http.ResponseWriter, r *http.Request) {
 		serveEmbeddedFile(w, r, webFS, "pad.html")
 	}))
 
 	handler := securityHeaders(ensureCsrfMiddleware(cfg, accessLog(mux.ServeHTTP)))
 
-	log.Printf("Sebinta (standalone) a correr na porta %s", cfg.Port)
-	log.Printf("Password do site: %s", boolLabel(siteAuthEnabled(cfg)))
-	log.Printf("Logs também gravados em %s", cfg.LogPath)
+	log.Printf("Sebinta (standalone) running on port %s", cfg.Port)
+	log.Printf("Site password: %s", boolLabel(siteAuthEnabled(cfg)))
+	log.Printf("Logs also written to %s", cfg.LogPath)
 
 	server := &http.Server{Addr: ":" + cfg.Port, Handler: handler}
 	go func() {
@@ -96,21 +96,21 @@ func main() {
 
 	var tunnel *tunnelHandle
 	if cfg.DisableTunnel {
-		log.Println("DISABLE_TUNNEL definido — sem túnel Cloudflare, o servidor só fica acessível localmente.")
+		log.Println("DISABLE_TUNNEL set — no Cloudflare tunnel, the server is only reachable locally.")
 	} else {
 		urlCh := make(chan string, 1)
 		h, err := startTunnel(cfg, urlCh)
 		if err != nil {
-			log.Printf("Aviso: não foi possível arrancar o túnel Cloudflare embutido: %v", err)
-			log.Println("O servidor continua a correr localmente. Define DISABLE_TUNNEL=true para não tentar de novo.")
+			log.Printf("Warning: could not start the embedded Cloudflare tunnel: %v", err)
+			log.Println("The server keeps running locally. Set DISABLE_TUNNEL=true to stop retrying.")
 		} else {
 			tunnel = h
 			go func() {
 				select {
 				case u := <-urlCh:
-					printHighlight("Sebinta disponível em: %s", u)
+					printHighlight("Sebinta available at: %s", u)
 				case <-time.After(30 * time.Second):
-					log.Println("O túnel Cloudflare ainda não respondeu com um URL — ver linhas [cloudflared] acima.")
+					log.Println("The Cloudflare tunnel hasn't responded with a URL yet — see the [cloudflared] lines above.")
 				}
 			}()
 		}
@@ -120,7 +120,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	log.Println("A encerrar...")
+	log.Println("Shutting down...")
 	tunnel.stop()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -129,9 +129,9 @@ func main() {
 
 func boolLabel(b bool) string {
 	if b {
-		return "ativa"
+		return "enabled"
 	}
-	return "desativada"
+	return "disabled"
 }
 
 // --- middlewares globais ---
@@ -144,10 +144,10 @@ func ensureCsrfMiddleware(cfg *Config, next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Regista IP do cliente + método + caminho (nunca corpo, query de
-// password, ou cookies — o caminho por si só não inclui `?id=...`, ver
-// nota equivalente em server/index.js). O IP é o que já usamos para rate
-// limiting (clientIP, em ratelimit.go), por isso reflete TRUST_PROXY.
+// Logs client IP + method + path (never the body, password query strings,
+// or cookies — the path alone doesn't include `?id=...`, see the matching
+// note in server/index.js). The IP is the same one we use for rate
+// limiting (clientIP, in ratelimit.go), so it respects TRUST_PROXY.
 func accessLog(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/css") && !strings.HasPrefix(r.URL.Path, "/js") {
