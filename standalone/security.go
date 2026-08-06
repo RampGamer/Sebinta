@@ -11,7 +11,7 @@ const csp = "default-src 'self'; " +
 	"style-src 'self' 'unsafe-inline'; " +
 	"img-src 'self' blob: data:; " +
 	"media-src 'self' blob:; " +
-	"connect-src 'self' ws: wss:; " +
+	"connect-src 'self' ws: wss: https://api.github.com; " + // downloads na landing: lê releases/latest
 	"font-src 'self'; " +
 	"object-src 'none'; " +
 	"base-uri 'none'; " +

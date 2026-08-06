@@ -15,7 +15,7 @@ const securityHeaders = helmet({
       styleSrc: ["'self'", "'unsafe-inline'"], // estilos inline mínimos no HTML estático
       imgSrc: ["'self'", 'blob:', 'data:'],
       mediaSrc: ["'self'", 'blob:'],
-      connectSrc: ["'self'", 'ws:', 'wss:'],
+      connectSrc: ["'self'", 'ws:', 'wss:', 'https://api.github.com'], // downloads na landing: lê releases/latest
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       baseUri: ["'none'"],

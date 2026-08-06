@@ -54,7 +54,7 @@
     flex: 1 1 160px; max-width: 200px; min-width: 40px;
     position: relative; top: 1px;
   }
-  .tab .name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .tab .name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
   .tab .dot.loading { background: var(--text-dim); }
   .tab .close {
@@ -121,7 +121,7 @@
   body.theme-notebook .tab {
     font-family: var(--nb-font-hand);
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.3rem;
     background: var(--nb-sticky-yellow);
     color: var(--nb-ink);
     border: none;

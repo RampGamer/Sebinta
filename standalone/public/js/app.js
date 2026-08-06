@@ -11,6 +11,51 @@
 (function () {
   const padId = decodeURIComponent(window.location.pathname.replace(/^\/+/, ''));
 
+  // Downloads na landing ("Cliente"/"Servidor"): os hrefs no HTML já
+  // apontam para a página de releases (fallback funcional sem JS); aqui só
+  // os afinamos para o ficheiro exato da última release, lido em direto da
+  // API do GitHub — assim nunca fica preso a uma versão à medida que saem
+  // releases novas. Falha silenciosa (offline, rate limit, etc.): os
+  // links de fallback continuam a funcionar.
+  function initDownloads() {
+    const releaseTag = document.getElementById('dl-release-tag');
+    const matchers = {
+      'client-windows': /^Sebinta-desktop-.*windows.*\.exe$/i,
+      'client-linux': /^Sebinta-desktop-.*\.AppImage$/i,
+      'client-macos': /^Sebinta-desktop-.*macos-arm64\.zip$/i,
+      'client-macos-x64': /^Sebinta-desktop-.*macos-x64\.zip$/i,
+      'server-windows': /^sebinta-server-.*windows.*\.exe$/i,
+      'server-linux': /^sebinta-server-.*linux-amd64$/i,
+      'server-macos': /^sebinta-server-.*macos-arm64$/i,
+      'server-macos-x64': /^sebinta-server-.*macos-amd64$/i,
+    };
+    fetch('https://api.github.com/repos/RampGamer/Sebinta/releases/latest')
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((release) => {
+        if (releaseTag && release.tag_name) {
+          releaseTag.textContent = ''; // textContent: nunca innerHTML, previne XSS
+          releaseTag.append('Última versão: ');
+          const b = document.createElement('b');
+          b.textContent = release.tag_name;
+          releaseTag.append(b);
+        }
+        const assets = release.assets || [];
+        for (const [key, pattern] of Object.entries(matchers)) {
+          const asset = assets.find((a) => pattern.test(a.name));
+          if (!asset) continue;
+          const el = document.querySelector(`[data-key="${key}"]`);
+          if (!el) continue;
+          el.href = asset.browser_download_url;
+          el.title = asset.name;
+          el.removeAttribute('target');
+          el.removeAttribute('rel');
+        }
+      })
+      .catch(() => {
+        if (releaseTag) releaseTag.textContent = 'Ver todas as versões no GitHub.';
+      });
+  }
+
   // Raiz "/" sem nome de pad: não há nada válido para carregar (o servidor
   // rejeitaria com invalid_pad_id) — mostra um ecrã a pedir um nome em vez
   // de tentar e falhar.
@@ -25,6 +70,7 @@
       if (!name) return;
       window.location.href = new URL(name, window.location.origin + '/').href;
     });
+    initDownloads();
     return;
   }
 
