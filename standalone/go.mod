@@ -1,4 +1,4 @@
-module github.com/RampGamer/filepad/standalone
+module github.com/RampGamer/sebinta/standalone
 
 go 1.26.5
 

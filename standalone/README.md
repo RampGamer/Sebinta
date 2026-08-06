@@ -22,7 +22,7 @@ same time against the same folder).
 ## Run a prebuilt binary
 
 Download the binary for your platform from
-[Releases](https://github.com/RampGamer/filepad/releases) and run it
+[Releases](https://github.com/RampGamer/sebinta/releases) and run it
 directly:
 
 ```bash
