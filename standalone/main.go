@@ -46,6 +46,7 @@ func main() {
 
 	mux.Handle("GET /css/", noDirListing(cacheOneHour(http.FileServer(http.FS(webFS)))))
 	mux.Handle("GET /js/", noDirListing(cacheOneHour(http.FileServer(http.FS(webFS)))))
+	mux.Handle("GET /fonts/", noDirListing(cacheOneHour(http.FileServer(http.FS(webFS)))))
 
 	mux.HandleFunc("GET /login", func(w http.ResponseWriter, r *http.Request) {
 		serveEmbeddedFile(w, r, webFS, "login.html")

@@ -28,7 +28,7 @@ app.use(auth.ensureCsrfCookie);
 // Log minimo: método + caminho apenas. Nunca corpo, query de password, ou
 // cookies — ver requisito de segurança #23 (logs sem conteúdo sensível).
 app.use((req, res, next) => {
-  if (!req.path.startsWith('/css') && !req.path.startsWith('/js')) {
+  if (!req.path.startsWith('/css') && !req.path.startsWith('/js') && !req.path.startsWith('/fonts')) {
     console.log(`${req.method} ${req.path}`);
   }
   next();
@@ -41,6 +41,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 // para desenhar o ecrã de password.
 app.use('/css', express.static(path.join(PUBLIC_DIR, 'css'), { index: false, maxAge: '1h' }));
 app.use('/js', express.static(path.join(PUBLIC_DIR, 'js'), { index: false, maxAge: '1h' }));
+app.use('/fonts', express.static(path.join(PUBLIC_DIR, 'fonts'), { index: false, maxAge: '1h' }));
 
 // Ecrã de password do site — sempre acessível (é o próprio gate).
 app.get('/login', (req, res) => {
