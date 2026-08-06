@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+<script>try{if(localStorage.getItem('sebinta-theme')==='notebook')document.body.classList.add('theme-notebook');}catch(e){}</script>
 
 <div class="landing" id="landing" hidden>
   <div class="landing-card">
@@ -24,16 +25,30 @@
 </div>
 
 <header class="topbar" id="pad-header">
-  <form class="pad-field" id="form-pad-path" autocomplete="off">
-    <span class="folder-icon" aria-hidden="true">📂</span>
-    <input type="text" id="pad-path-input" spellcheck="false" aria-label="Caminho do pad">
-    <button type="submit">Ir</button>
-  </form>
-  <span class="protected-badge" id="protected-badge" title="Este pad está protegido por password" hidden>🔒 Protegido</span>
-  <div class="status">
-    <span class="status-dot" id="status-dot"></span>
-    <span id="status-text">a ligar…</span>
+  <div class="header-left">
+    <form class="pad-field" id="form-pad-path" autocomplete="off">
+      <span class="folder-icon" aria-hidden="true">📂</span>
+      <input type="text" id="pad-path-input" spellcheck="false" aria-label="Caminho do pad">
+      <button type="submit">Ir</button>
+    </form>
+    <span class="protected-badge" id="protected-badge" title="Este pad está protegido por password" hidden>🔒 Protegido</span>
+    <div class="status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">a ligar…</span>
+    </div>
   </div>
+
+  <button type="button" class="brand-logo" id="btn-brand-logo" title="✨">
+    <svg class="logo-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <rect x="7" y="3" width="15" height="18" rx="2"/>
+      <circle cx="3" cy="6" r="1.5"/>
+      <circle cx="3" cy="12" r="1.5"/>
+      <circle cx="3" cy="18" r="1.5"/>
+      <path d="M11 9h7M11 13h7M11 17h4"/>
+    </svg>
+    <span class="wordmark">se<span class="bin">bin</span>ta</span>
+  </button>
+
   <div class="actions">
     <button id="btn-password" title="Proteger este pad com password">🔒 Password</button>
     <button id="btn-clear" class="danger" title="Apagar texto e ficheiros deste pad">🗑 Limpar pad</button>

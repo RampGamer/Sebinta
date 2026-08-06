@@ -81,6 +81,14 @@
     window.location.href = new URL(raw, window.location.origin + '/').href;
   });
 
+  // Easter egg: troca para um tema "caderno" (mesma página, só reskin via
+  // CSS — ver body.theme-notebook em style.css). Fica guardado por browser.
+  const brandLogo = document.getElementById('btn-brand-logo');
+  brandLogo.addEventListener('click', () => {
+    const next = document.body.classList.toggle('theme-notebook') ? 'notebook' : 'sober';
+    try { localStorage.setItem('sebinta-theme', next); } catch (e) { /* ignora (modo privado, etc.) */ }
+  });
+
   // --- utilidades ---
   function getCookie(name) {
     const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
