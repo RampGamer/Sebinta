@@ -96,6 +96,7 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
   if (!password) {
     store.setPadPassword(req.padId, null);
+    ws.broadcastPadChanged(req.padId);
     return res.json({ ok: true, hasPassword: false });
   }
   if (password.length < 4 || password.length > 200) {
@@ -104,6 +105,9 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
   const hash = auth.hashPadPassword(password);
   store.setPadPassword(req.padId, hash);
   auth.markPadUnlocked(req, res, req.padId);
+  // Sem isto, quem já tem o pad aberto só via o badge "Protegido" (ou fica
+  // bloqueado, se ainda não tiver a cookie de desbloqueio) depois de um F5.
+  ws.broadcastPadChanged(req.padId);
   res.json({ ok: true, hasPassword: true });
 });
 
@@ -113,7 +117,10 @@ router.post('/unlock', padPasswordLimiter, auth.csrfProtection, (req, res) => {
   if (!pad.password_hash) return res.json({ ok: true });
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
   if (!auth.verifyPadPassword(password, pad.password_hash)) {
-    return res.status(401).json({ error: 'invalid_password' });
+    // 403, não 401: o cliente trata qualquer 401 como "falta autenticação do
+    // site" e redireciona para /login (ver api() em app.js) — uma password
+    // de pad errada não tem nada a ver com isso.
+    return res.status(403).json({ error: 'invalid_password' });
   }
   auth.markPadUnlocked(req, res, req.padId);
   res.json({ ok: true });

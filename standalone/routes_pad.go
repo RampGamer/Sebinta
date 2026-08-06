@@ -138,7 +138,7 @@ type padPasswordBody struct {
 	Password string `json:"password"`
 }
 
-func handlePadSetPassword(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http.Request, string) {
+func handlePadSetPassword(cfg *Config, db *sql.DB, hub *wsHub) func(http.ResponseWriter, *http.Request, string) {
 	return func(w http.ResponseWriter, r *http.Request, padID string) {
 		if !csrfValid(r) {
 			writeJSONError(w, http.StatusForbidden, "csrf_invalid")
@@ -157,6 +157,7 @@ func handlePadSetPassword(cfg *Config, db *sql.DB) func(http.ResponseWriter, *ht
 		_ = readJSONBody(r, 4*1024, &body)
 		if body.Password == "" {
 			_ = setPadPassword(db, padID, nil)
+			hub.broadcastPadChanged(padID, nil)
 			writeJSON(w, http.StatusOK, map[string]any{"ok": true, "hasPassword": false})
 			return
 		}
@@ -174,6 +175,10 @@ func handlePadSetPassword(cfg *Config, db *sql.DB) func(http.ResponseWriter, *ht
 			return
 		}
 		markPadUnlocked(cfg, w, r, padID)
+		// Without this, anyone else with the pad already open only sees the
+		// "Protected" badge (or gets locked out, if they lack the unlock
+		// cookie) after an F5.
+		hub.broadcastPadChanged(padID, nil)
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "hasPassword": true})
 	}
 }
@@ -196,7 +201,10 @@ func handlePadUnlock(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http.Re
 		var body padPasswordBody
 		_ = readJSONBody(r, 4*1024, &body)
 		if !verifyPadPassword(body.Password, pad.PasswordHash.String) {
-			writeJSONError(w, http.StatusUnauthorized, "invalid_password")
+			// 403, not 401: the client treats any 401 as "site auth required"
+			// and redirects to /login (see api() in app.js) — a wrong pad
+			// password has nothing to do with that.
+			writeJSONError(w, http.StatusForbidden, "invalid_password")
 			return
 		}
 		markPadUnlocked(cfg, w, r, padID)
@@ -209,6 +217,6 @@ func registerPadRoutes(mux *http.ServeMux, cfg *Config, db *sql.DB, hub *wsHub, 
 	mux.HandleFunc("GET /api/pad/poll", gate(withPadID(handlePadPoll(db))))
 	mux.HandleFunc("PUT /api/pad", gate(padWriteLimiter.middleware(withPadID(handlePadPut(cfg, db, hub)))))
 	mux.HandleFunc("DELETE /api/pad", gate(withPadID(handlePadDelete(cfg, db, hub))))
-	mux.HandleFunc("POST /api/pad/password", gate(padPasswordLimiter.middleware(withPadID(handlePadSetPassword(cfg, db)))))
+	mux.HandleFunc("POST /api/pad/password", gate(padPasswordLimiter.middleware(withPadID(handlePadSetPassword(cfg, db, hub)))))
 	mux.HandleFunc("POST /api/pad/unlock", gate(padPasswordLimiter.middleware(withPadID(handlePadUnlock(cfg, db)))))
 }

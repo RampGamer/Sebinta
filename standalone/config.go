@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"encoding/hex"
+	"flag"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -99,6 +100,9 @@ func randomHex(n int) string {
 }
 
 func loadConfig() *Config {
+	portFlag := flag.String("port", "", "TCP port to listen on (overrides $PORT and .env; default 3000)")
+	flag.Parse()
+
 	rootDir, err := os.Getwd()
 	if err != nil {
 		rootDir = "."
@@ -131,6 +135,9 @@ func loadConfig() *Config {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
+	}
+	if *portFlag != "" {
+		port = *portFlag // --port ganha a $PORT/.env — a intenção explícita na linha de comandos deve vencer
 	}
 
 	maxFileSizeMB := int64(envInt("MAX_FILE_SIZE_MB", 500))

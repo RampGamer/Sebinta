@@ -46,6 +46,13 @@ ready**:
 Sebinta available at: https://random-words-here.trycloudflare.com
 ```
 
+To start on a different port, either set `PORT` or pass `--port`, which
+takes priority over `PORT`/`.env`:
+
+```bash
+./sebinta-server-linux-amd64 --port 8080
+```
+
 That link changes on every startup (that's how Quick Tunnel works — no
 Cloudflare account, no fixed domain). For a fixed domain, set
 `TUNNEL_TOKEN` (the same named-tunnel token documented in the root
