@@ -35,6 +35,13 @@ Resumo do trabalho feito hoje no Sebinta (antigo Filepad), da rebrand até às r
 - **Corrigido um bug de CSP**: o script inline no `<head>` do `pad.html` que aplicava o tema caderno guardado no `localStorage` estava a ser bloqueado por `script-src 'self'` — o tema nunca sobrevivia a um reload, só ficava ativo até se clicar de novo no logótipo. Movido para `public/js/theme-init.js` (ficheiro externo, mesma posição logo após `<body>`, sem flash do tema errado).
 - **README simplificado e em inglês** — o README principal passou de ~235 para menos de 80 linhas; a walkthrough do túnel Cloudflare, referência de configuração, operações Docker, backup/restore e troubleshooting mudaram-se para `docs/DEPLOYMENT.md`. Screenshot da landing atualizado para mostrar a nova secção de downloads.
 
+## Correções de password do pad, --port no standalone, e ajustes na secção de downloads
+
+- **Badge "Protegido" sem refletir sem F5**: definir (ou remover) a password de um pad nunca avisava os outros clientes já ligados via WebSocket — só via texto/ficheiros. Agora `POST /api/pad/password` também dispara `broadcastPadChanged`, em paralelo no servidor Node e no standalone em Go. Confirmado com dois browsers no mesmo pad: o badge aparece/desaparece, e quem não tem a password fica bloqueado, sem reload.
+- **Password errada no unlock mandava para `/login?next=...`**: `/api/pad/unlock` devolvia `401` numa password errada, e o `api()` do frontend trata qualquer `401` como "falta autenticação do site" e redireciona — por isso a tentativa seguinte (já com a password certa) ficava perdida nesse fluxo errado. Mudado para `403` nos dois servidores; confirmado que errar e depois acertar já desbloqueia à primeira.
+- **`--port` no servidor standalone** — `./sebinta-server --port 8080` (prioridade sobre `PORT`/`.env`).
+- **Downloads da landing**: Cliente e Servidor deixaram de estar lado a lado — agora um por cima do outro — e os ícones ficaram bem maiores (quadrados, 22px→36px). Mantida a resolução em tempo real via API do GitHub (não um link estático para `releases/latest`, nem uma versão hardcoded no HTML) — os nomes dos binários incluem a versão, por isso só um link construído a partir da última release por API garante um download direto que não fica preso a uma versão antiga.
+
 ## Releases publicadas
 
 | Versão | Destaques |
@@ -44,6 +51,7 @@ Resumo do trabalho feito hoje no Sebinta (antigo Filepad), da rebrand até às r
 | `v1.6.0` | Nomes dos binários passam a incluir a versão; correções de fidelidade do tema caderno |
 | `v1.7.0` | Tema caderno a ocupar o ecrã todo; separadores do desktop sincronizados com o tema |
 | `v1.8.0` | Downloads (Cliente/Servidor) na landing; tema caderno mais legível; fix do "✕" das tabs; fix de CSP no tema; README simplificado |
+| `v1.8.1` | Fix do badge de password sem F5; fix do redirect para /login numa password errada; `--port` no standalone; downloads empilhados com ícones maiores |
 
 Cada release inclui: servidor standalone em Go (`sebinta-server-vX.Y.Z-*`, 4 plataformas), CLI de limpeza de metadados (`sebinta-clean-vX.Y.Z-*`, 4 plataformas) e app desktop Electron (`Sebinta-desktop-vX.Y.Z-*`: AppImage, `.exe` portátil, `.zip` macOS x64/arm64), mais um `SHA256SUMS.txt`.
 
