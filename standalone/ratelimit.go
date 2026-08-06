@@ -62,7 +62,68 @@ var (
 	padPasswordLimiter = newRateLimiter(10*time.Minute, 15, "too_many_attempts")
 	uploadLimiter      = newRateLimiter(5*time.Minute, 60, "too_many_uploads")
 	padWriteLimiter    = newRateLimiter(1*time.Minute, 120, "too_many_requests")
+
+	// Tighter, pad-scoped guard against password guessing: 5 wrong guesses
+	// against the same pad locks that (IP, pad) pair out for 30s. Keyed by
+	// IP+pad rather than pad alone, so one attacker can't lock everyone else
+	// out of unlocking a shared pad just by failing on purpose.
+	padUnlockAttemptLimiter = newFailedAttemptLimiter(5, 30*time.Second)
 )
+
+// FailedAttemptLimiter locks a key out for a fixed duration once it racks up
+// enough consecutive failures — unlike RateLimiter's fixed window, a single
+// success resets the count, so legitimate retries after a typo don't count
+// against the limit.
+type FailedAttemptLimiter struct {
+	threshold int
+	lockout   time.Duration
+
+	mu    sync.Mutex
+	state map[string]*failState
+}
+
+type failState struct {
+	failures    int
+	lockedUntil time.Time
+}
+
+func newFailedAttemptLimiter(threshold int, lockout time.Duration) *FailedAttemptLimiter {
+	return &FailedAttemptLimiter{threshold: threshold, lockout: lockout, state: map[string]*failState{}}
+}
+
+func (l *FailedAttemptLimiter) blocked(key string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	s, ok := l.state[key]
+	if !ok {
+		return false
+	}
+	return time.Now().Before(s.lockedUntil)
+}
+
+// recordFailure counts a wrong attempt, locking the key out once the
+// threshold is reached.
+func (l *FailedAttemptLimiter) recordFailure(key string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	s, ok := l.state[key]
+	if !ok {
+		s = &failState{}
+		l.state[key] = s
+	}
+	s.failures++
+	if s.failures >= l.threshold {
+		s.lockedUntil = time.Now().Add(l.lockout)
+		s.failures = 0
+	}
+}
+
+// recordSuccess clears any accumulated failures for key.
+func (l *FailedAttemptLimiter) recordSuccess(key string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	delete(l.state, key)
+}
 
 // clientIP replicates Express's "trust proxy" behavior: with TRUST_PROXY
 // enabled (the default), uses the first IP in X-Forwarded-For; otherwise

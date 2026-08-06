@@ -38,4 +38,46 @@ const padWriteLimiter = rateLimit({
   message: { error: 'too_many_requests' },
 });
 
-module.exports = { loginLimiter, padPasswordLimiter, uploadLimiter, padWriteLimiter };
+// Tighter, pad-scoped guard against password guessing: 5 wrong guesses
+// against the same pad locks that (IP, pad) pair out for 30s. A success
+// clears the count, so a legitimate retry after a typo doesn't count
+// against the limit. Keyed by IP+pad rather than pad alone, so one
+// attacker can't lock everyone else out of unlocking a shared pad just by
+// failing on purpose.
+const FAILED_ATTEMPT_THRESHOLD = 5;
+const FAILED_ATTEMPT_LOCKOUT_MS = 30 * 1000;
+const failedPadUnlockAttempts = new Map(); // "ip:padId" -> { failures, lockedUntil }
+
+function padUnlockAttemptKey(req) {
+  return `${req.ip}:${req.padId}`;
+}
+
+function isPadUnlockBlocked(req) {
+  const s = failedPadUnlockAttempts.get(padUnlockAttemptKey(req));
+  return Boolean(s && Date.now() < s.lockedUntil);
+}
+
+function recordPadUnlockFailure(req) {
+  const key = padUnlockAttemptKey(req);
+  const s = failedPadUnlockAttempts.get(key) || { failures: 0, lockedUntil: 0 };
+  s.failures += 1;
+  if (s.failures >= FAILED_ATTEMPT_THRESHOLD) {
+    s.lockedUntil = Date.now() + FAILED_ATTEMPT_LOCKOUT_MS;
+    s.failures = 0;
+  }
+  failedPadUnlockAttempts.set(key, s);
+}
+
+function recordPadUnlockSuccess(req) {
+  failedPadUnlockAttempts.delete(padUnlockAttemptKey(req));
+}
+
+module.exports = {
+  loginLimiter,
+  padPasswordLimiter,
+  uploadLimiter,
+  padWriteLimiter,
+  isPadUnlockBlocked,
+  recordPadUnlockFailure,
+  recordPadUnlockSuccess,
+};

@@ -101,6 +101,15 @@
 
   let state = { version: 0, hasPassword: false, locked: false };
 
+  // Bumped every time this tab locally confirms it holds the right
+  // password (sets one, or unlocks). A refresh() started before that
+  // point can still resolve after it (it was already in flight, sent
+  // with the pre-unlock cookie) and report locked:true — comparing
+  // against the token lets refresh() tell that stale verdict apart from
+  // a real, current lock and ignore it, instead of flashing the unlock
+  // modal right after the password was just set.
+  let unlockToken = 0;
+
   // Shows whether the pad became protected — whoever sets the password
   // stays unlocked in this browser (7-day cookie), so the badge is the
   // only visual signal that protection actually took effect.
@@ -187,6 +196,7 @@
 
   // --- load / render pad state ---
   async function refresh() {
+    const tokenAtStart = unlockToken;
     let res;
     try {
       res = await api('/api/pad');
@@ -202,6 +212,7 @@
     updateProtectedBadge();
 
     if (data.locked) {
+      if (tokenAtStart !== unlockToken) return; // superseded: this tab already unlocked since this request was sent
       state.locked = true;
       modalUnlock.classList.add('active');
       return;
@@ -379,8 +390,11 @@
     if (res.ok) {
       const data = await res.json();
       state.hasPassword = data.hasPassword;
+      state.locked = false;
+      unlockToken++;
       updateProtectedBadge();
       modalPassword.classList.remove('active');
+      modalUnlock.classList.remove('active');
       toast(data.hasPassword ? 'Password set — this pad is now protected (look for the 🔒 icon next to the name).' : 'Password removed.', 'success');
     } else {
       const data = await res.json().catch(() => ({}));
@@ -401,6 +415,8 @@
     });
     if (res.ok) {
       document.getElementById('unlock-password').value = '';
+      state.locked = false;
+      unlockToken++;
       modalUnlock.classList.remove('active');
       state.version = -1; // forces the content received next to be applied
       refresh();
