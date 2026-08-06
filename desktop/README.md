@@ -55,3 +55,16 @@ macOS binaries aren't signed or notarized (no Apple certificate);
 Gatekeeper will block opening them by default — right-click → Open the
 first time, or `xattr -d com.apple.quarantine Sebinta.app` after
 unzipping.
+
+The AppImage needs execute permission (`chmod +x Sebinta-*.AppImage`,
+lost on download like any Linux binary) and, on distros that dropped
+`libfuse2` (Debian/Ubuntu 22.04+, Kali, Fedora and others — AppImage's
+default runtime needs the FUSE2 compat lib specifically, not FUSE3),
+it'll fail with `dlopen(): error loading libfuse.so.2`. Either install
+`libfuse2` (`sudo apt install libfuse2`, package name may be
+`libfuse2t64` on newer Debian/Ubuntu, `fuse-libs` on Fedora), or skip
+FUSE entirely — no root needed:
+
+```bash
+./Sebinta-*.AppImage --appimage-extract-and-run
+```
