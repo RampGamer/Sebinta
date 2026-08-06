@@ -74,10 +74,11 @@ cp .env.example .env
 
 ### Option B — Standalone binary (no Docker)
 
-A single static Go binary with **`cloudflared` embedded** — nothing else to install. Grab it from [Releases](/RampGamer/sebinta/releases) and run it:
+A single static Go binary with **`cloudflared` embedded** — nothing else to install. Grab it from [Releases](/RampGamer/Sebinta/releases) (filename includes the version, e.g. `sebinta-server-v1.7.0-linux-amd64`) and run it. On Linux/macOS, `chmod +x` it first — downloads don't keep the executable bit, and without it the binary just does nothing (no error, no window) when you try to run it:
 
 ```bash
-./sebinta-server-linux-amd64
+chmod +x sebinta-server-v1.7.0-linux-amd64
+./sebinta-server-v1.7.0-linux-amd64
 ```
 
 That's the whole setup. It starts the server, opens a Cloudflare Quick Tunnel by itself, and prints the public URL in **bold cyan** as soon as it's ready:
@@ -90,7 +91,7 @@ Set `DISABLE_TUNNEL=true` to stay local-only, or `TUNNEL_TOKEN` to use a fixed d
 
 ### Option C — Desktop app
 
-An Electron client that opens your Sebinta server in a normal window — same interface as the browser — and additionally intercepts uploads to clean Office/PDF metadata locally before they leave your computer (see [Metadata cleaning](#metadata-cleaning)). Available for Linux (AppImage), Windows (portable `.exe`, no installer), and macOS (Intel + Apple Silicon) from [Releases](/RampGamer/sebinta/releases).
+An Electron client that opens your Sebinta server in a normal window — same interface as the browser — and additionally intercepts uploads to clean Office/PDF metadata locally before they leave your computer (see [Metadata cleaning](#metadata-cleaning)). Available for Linux (AppImage), Windows (portable `.exe`, no installer), and macOS (Intel + Apple Silicon) from [Releases](/RampGamer/Sebinta/releases).
 
 The first launch asks for your server's URL and remembers it — after that, it's just open and use. Details in [`desktop/README.md`](desktop/README.md).
 

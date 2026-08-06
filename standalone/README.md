@@ -22,12 +22,20 @@ same time against the same folder).
 ## Run a prebuilt binary
 
 Download the binary for your platform from
-[Releases](https://github.com/RampGamer/sebinta/releases) and run it
-directly:
+[Releases](https://github.com/RampGamer/Sebinta/releases) — the filename
+includes the version, e.g. `sebinta-server-v1.7.0-linux-amd64`.
+
+On Linux and macOS, make it executable first — downloads don't keep that
+bit, and without it the binary just fails silently (`permission denied`,
+no window, nothing) when you try to run it:
 
 ```bash
-./sebinta-server-linux-amd64
+chmod +x sebinta-server-v1.7.0-linux-amd64
+./sebinta-server-v1.7.0-linux-amd64
 ```
+
+On Windows, just double-click the `.exe` (or run it from a terminal —
+`.exe` files don't need this step).
 
 That's the whole setup: it starts the server on port 3000, automatically
 opens a Cloudflare Quick Tunnel (using the `cloudflared` embedded in the
