@@ -101,6 +101,7 @@ func randomHex(n int) string {
 
 func loadConfig() *Config {
 	portFlag := flag.String("port", "", "TCP port to listen on (overrides $PORT and .env; default 3000)")
+	tunnelTokenFlag := flag.String("tunnel-token", "", "Cloudflare named-tunnel token for a fixed domain (overrides $TUNNEL_TOKEN and .env)")
 	flag.Parse()
 
 	rootDir, err := os.Getwd()
@@ -140,6 +141,11 @@ func loadConfig() *Config {
 		port = *portFlag // --port beats $PORT/.env — explicit command-line intent should win
 	}
 
+	tunnelToken := os.Getenv("TUNNEL_TOKEN")
+	if *tunnelTokenFlag != "" {
+		tunnelToken = *tunnelTokenFlag // --tunnel-token beats $TUNNEL_TOKEN/.env, same reasoning as --port
+	}
+
 	maxFileSizeMB := int64(envInt("MAX_FILE_SIZE_MB", 500))
 
 	return &Config{
@@ -154,7 +160,7 @@ func loadConfig() *Config {
 		LogPath:       logPath,
 
 		DisableTunnel: envBool("DISABLE_TUNNEL", false),
-		TunnelToken:   os.Getenv("TUNNEL_TOKEN"),
+		TunnelToken:   tunnelToken,
 
 		SitePassword: os.Getenv("SITE_PASSWORD"),
 		CookieSecret: cookieSecret,

@@ -54,10 +54,19 @@ takes priority over `PORT`/`.env`:
 ```
 
 That link changes on every startup (that's how Quick Tunnel works — no
-Cloudflare account, no fixed domain). For a fixed domain, set
-`TUNNEL_TOKEN` (the same named-tunnel token documented in the root
-README — this binary reads it automatically, same as the Docker Compose
-`cloudflared` service). To run local-only, with no tunnel at all:
+Cloudflare account, no fixed domain). For your own domain, create a named
+tunnel and route it to that domain in the Cloudflare dashboard (steps in
+`docs/DEPLOYMENT.md`), then set the resulting token via `TUNNEL_TOKEN` or
+`--tunnel-token` (takes priority over `TUNNEL_TOKEN`/`.env`, same as
+`--port`):
+
+```bash
+./sebinta-server-linux-amd64 --tunnel-token eyJhIjoi...
+```
+
+The domain itself isn't something this binary knows about — it's tied to
+the tunnel token on Cloudflare's side; the binary just authenticates as
+that tunnel. To run local-only, with no tunnel at all:
 
 ```bash
 DISABLE_TUNNEL=true ./sebinta-server-linux-amd64
