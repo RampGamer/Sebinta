@@ -1,7 +1,7 @@
 {
   "name": "sebinta",
   "version": "1.0.0",
-  "description": "Aplicacao de partilha de texto e ficheiros estilo Dontpad, com sincronizacao em tempo real",
+  "description": "Dontpad-style text and file sharing app, with real-time sync",
   "private": true,
   "license": "MIT",
   "main": "server/index.js",

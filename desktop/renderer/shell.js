@@ -116,7 +116,7 @@
     if (idx === -1) return;
 
     if (tabs.length === 1) {
-      // Nunca deixa a janela sem separadores — este volta à raiz (landing).
+      // Never leaves the window without tabs — this one goes back to the root (landing).
       const tab = tabs[0];
       tab.padPath = '';
       tab.webview.loadURL(tabUrl(''));

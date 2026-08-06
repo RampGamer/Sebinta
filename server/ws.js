@@ -115,7 +115,7 @@ function attach(server) {
   return wss;
 }
 
-/** Notifica todos os clientes ligados a um pad de que o estado mudou. */
+/** Notifies every client connected to a pad that its state changed. */
 function broadcastPadChanged(padId, extra = {}) {
   const room = rooms.get(padId);
   if (!room || room.size === 0) return;

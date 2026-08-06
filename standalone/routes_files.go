@@ -20,11 +20,11 @@ var controlCharsRe = regexp.MustCompile(`[\x00-\x1f\x7f]`)
 func sanitizeOriginalName(name string) string {
 	base := filepath.Base(name)
 	if base == "" || base == "." || base == string(filepath.Separator) {
-		base = "ficheiro"
+		base = "file"
 	}
 	cleaned := strings.TrimSpace(controlCharsRe.ReplaceAllString(base, ""))
 	if cleaned == "" {
-		cleaned = "ficheiro"
+		cleaned = "file"
 	}
 	if len(cleaned) > 255 {
 		cleaned = cleaned[:255]

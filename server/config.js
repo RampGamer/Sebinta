@@ -13,9 +13,9 @@ function envInt(name, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-// COOKIE_SECRET / CSRF_SECRET sao gerados aleatoriamente se nao definidos,
-// mas nesse caso as sessoes nao sobrevivem a um restart do container.
-// Em producao define-os no .env para manter as sessoes de forma estavel.
+// COOKIE_SECRET / CSRF_SECRET are randomly generated if not set, but in
+// that case sessions don't survive a container restart. In production,
+// set them in .env to keep sessions stable.
 const COOKIE_SECRET = process.env.COOKIE_SECRET || crypto.randomBytes(32).toString('hex');
 
 const config = {
@@ -30,18 +30,18 @@ const config = {
   quarantineDir: path.join(process.env.UPLOADS_DIR || path.join(ROOT_DIR, 'uploads'), 'quarantine'),
   finalDir: path.join(process.env.UPLOADS_DIR || path.join(ROOT_DIR, 'uploads'), 'final'),
 
-  // Password global do site (opcional). Se vazia/indefinida, o site abre livremente.
+  // Site-wide password (optional). If empty/undefined, the site opens freely.
   sitePassword: process.env.SITE_PASSWORD || '',
 
   cookieSecret: COOKIE_SECRET,
-  cookieSecure: process.env.COOKIE_SECURE !== 'false', // true por omissao (atras do tunnel ha sempre HTTPS)
+  cookieSecure: process.env.COOKIE_SECURE !== 'false', // true by default (there's always HTTPS behind the tunnel)
 
   maxFileSizeMb: envInt('MAX_FILE_SIZE_MB', 500),
   get maxFileSizeBytes() {
     return this.maxFileSizeMb * 1024 * 1024;
   },
 
-  // Se definido (> 0), ficheiros mais antigos que N dias sao apagados automaticamente.
+  // If set (> 0), files older than N days are deleted automatically.
   fileTtlDays: envInt('FILE_TTL_DAYS', 0),
 
   maxPadContentChars: envInt('MAX_PAD_CONTENT_CHARS', 2_000_000),

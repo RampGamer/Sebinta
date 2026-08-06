@@ -26,7 +26,7 @@ function deleteStoredFile(storedName) {
   fs.unlink(p, (err) => {
     if (err && err.code !== 'ENOENT') {
       // eslint-disable-next-line no-console
-      console.error('Falha ao apagar ficheiro do armazenamento:', err.code);
+      console.error('Failed to delete file from storage:', err.code);
     }
   });
 }

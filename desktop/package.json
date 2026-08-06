@@ -1,7 +1,7 @@
 {
   "name": "sebinta-desktop",
-  "version": "1.8.3",
-  "description": "App desktop Electron para o Sebinta — mesma interface do browser, mas limpa Office/PDF localmente antes do upload.",
+  "version": "1.8.4",
+  "description": "Electron desktop app for Sebinta — same interface as the browser, but cleans Office/PDF locally before upload.",
   "private": true,
   "license": "MIT",
   "main": "main.js",
