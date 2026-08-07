@@ -166,6 +166,16 @@ func handlePadSetPassword(cfg *Config, db *sql.DB, hub *wsHub) func(http.Respons
 			writeJSONError(w, http.StatusBadRequest, "invalid_password_length")
 			return
 		}
+		wasUnprotected := !pad.PasswordHash.Valid || pad.PasswordHash.String == ""
+		if wasUnprotected {
+			ip := clientIP(r, cfg)
+			if !newPadLockLimiter.allow(ip, padID) {
+				writeJSON(w, http.StatusTooManyRequests, map[string]any{
+					"error": "too_many_new_locks", "retryAfterSeconds": newPadLockLimiter.retryAfter(ip),
+				})
+				return
+			}
+		}
 		hash, err := hashPadPassword(body.Password)
 		if err != nil {
 			writeJSONError(w, http.StatusInternalServerError, "internal_error")
