@@ -10,6 +10,8 @@ const {
   padUnlockRetryAfterSeconds,
   recordPadUnlockFailure,
   recordPadUnlockSuccess,
+  newPadLockAllowed,
+  newPadLockRetryAfterSeconds,
 } = require('../middleware/rateLimit');
 const ws = require('../ws');
 
@@ -108,6 +110,13 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
   }
   if (password.length < 4 || password.length > 200) {
     return res.status(400).json({ error: 'invalid_password_length' });
+  }
+  const wasUnprotected = !pad.password_hash;
+  if (wasUnprotected && !newPadLockAllowed(req.ip, req.padId)) {
+    return res.status(429).json({
+      error: 'too_many_new_locks',
+      retryAfterSeconds: newPadLockRetryAfterSeconds(req.ip),
+    });
   }
   const hash = auth.hashPadPassword(password);
   store.setPadPassword(req.padId, hash);

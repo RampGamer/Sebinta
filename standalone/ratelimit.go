@@ -93,6 +93,16 @@ var (
 	// IP+pad rather than pad alone, so one attacker can't lock everyone else
 	// out of unlocking a shared pad just by failing on purpose.
 	padUnlockAttemptLimiter = newFailedAttemptLimiter(5, 30*time.Second)
+
+	// Knowing a pad's name is already enough to read/edit/delete it (that's
+	// this app's whole no-accounts model), but *protecting* a still-open
+	// pad shouldn't be that cheap — there's nothing else stopping a script
+	// from working through a wordlist of common pad names and password-
+	// locking every one it finds, denying real users access to pads they
+	// were already using. Caps how many previously-unprotected pads one IP
+	// can newly protect per hour; changing/removing a password you already
+	// hold doesn't count, so this never affects normal use of your own pads.
+	newPadLockLimiter = newDistinctSetLimiter(1*time.Hour, 20)
 )
 
 // FailedAttemptLimiter locks a key out for a fixed duration once it racks up
@@ -155,6 +165,69 @@ func (l *FailedAttemptLimiter) recordSuccess(key string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	delete(l.state, key)
+}
+
+// DistinctSetLimiter caps how many *distinct* items a key has touched within
+// a fixed window — unlike RateLimiter, which counts requests regardless of
+// what they're for, this counts unique items, so repeating the same item
+// (e.g. re-saving a password on a pad you already just protected) never
+// counts against the limit.
+type DistinctSetLimiter struct {
+	window time.Duration
+	limit  int
+
+	mu   sync.Mutex
+	sets map[string]*itemSet
+}
+
+type itemSet struct {
+	windowStart time.Time
+	items       map[string]bool
+}
+
+func newDistinctSetLimiter(window time.Duration, limit int) *DistinctSetLimiter {
+	return &DistinctSetLimiter{window: window, limit: limit, sets: map[string]*itemSet{}}
+}
+
+// allow reports whether key may touch item — true if item was already
+// counted this window, or if the window has room for one more distinct
+// item. Records item as counted either way (unless the limit was hit).
+func (l *DistinctSetLimiter) allow(key, item string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	s, ok := l.sets[key]
+	if !ok || now.Sub(s.windowStart) > l.window {
+		s = &itemSet{windowStart: now, items: map[string]bool{}}
+		l.sets[key] = s
+	}
+	if s.items[item] {
+		return true
+	}
+	if len(s.items) >= l.limit {
+		return false
+	}
+	s.items[item] = true
+	return true
+}
+
+// retryAfter reports how many seconds are left in key's current window.
+func (l *DistinctSetLimiter) retryAfter(key string) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	s, ok := l.sets[key]
+	if !ok {
+		return 0
+	}
+	remaining := l.window - time.Since(s.windowStart)
+	if remaining <= 0 {
+		return 0
+	}
+	secs := int(remaining.Round(time.Second) / time.Second)
+	if secs < 1 {
+		secs = 1
+	}
+	return secs
 }
 
 // clientIP replicates Express's "trust proxy" behavior: with TRUST_PROXY

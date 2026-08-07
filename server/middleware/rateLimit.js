@@ -92,6 +92,38 @@ function recordPadUnlockSuccess(req) {
   failedPadUnlockAttempts.delete(padUnlockAttemptKey(req));
 }
 
+// Knowing a pad's name is already enough to read/edit/delete it (that's this
+// app's whole no-accounts model), but *protecting* a still-open pad
+// shouldn't be that cheap — there's nothing else stopping a script from
+// working through a wordlist of common pad names and password-locking every
+// one it finds, denying real users access to pads they were already using.
+// Caps how many previously-unprotected pads one IP can newly protect per
+// hour; changing/removing a password you already hold doesn't count, so
+// this never affects normal use of your own pads.
+const NEW_LOCK_WINDOW_MS = 60 * 60 * 1000;
+const NEW_LOCK_LIMIT = 20;
+const newPadLockSets = new Map(); // ip -> { windowStart, padIds: Set }
+
+function newPadLockAllowed(ip, padId) {
+  const now = Date.now();
+  let s = newPadLockSets.get(ip);
+  if (!s || now - s.windowStart > NEW_LOCK_WINDOW_MS) {
+    s = { windowStart: now, padIds: new Set() };
+    newPadLockSets.set(ip, s);
+  }
+  if (s.padIds.has(padId)) return true;
+  if (s.padIds.size >= NEW_LOCK_LIMIT) return false;
+  s.padIds.add(padId);
+  return true;
+}
+
+function newPadLockRetryAfterSeconds(ip) {
+  const s = newPadLockSets.get(ip);
+  if (!s) return 0;
+  const remainingMs = NEW_LOCK_WINDOW_MS - (Date.now() - s.windowStart);
+  return remainingMs > 0 ? Math.max(1, Math.round(remainingMs / 1000)) : 0;
+}
+
 module.exports = {
   loginLimiter,
   padPasswordLimiter,
@@ -100,4 +132,6 @@ module.exports = {
   padUnlockRetryAfterSeconds,
   recordPadUnlockFailure,
   recordPadUnlockSuccess,
+  newPadLockAllowed,
+  newPadLockRetryAfterSeconds,
 };
