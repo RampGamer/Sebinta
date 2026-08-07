@@ -7,7 +7,7 @@ const store = require('../services/padStore');
 const {
   padWriteLimiter,
   padPasswordLimiter,
-  isPadUnlockBlocked,
+  padUnlockRetryAfterSeconds,
   recordPadUnlockFailure,
   recordPadUnlockSuccess,
 } = require('../middleware/rateLimit');
@@ -125,8 +125,9 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
 router.post('/unlock', padPasswordLimiter, auth.csrfProtection, (req, res) => {
   const pad = store.getOrCreatePad(req.padId);
   if (!pad.password_hash) return res.json({ ok: true });
-  if (isPadUnlockBlocked(req)) {
-    return res.status(429).json({ error: 'too_many_attempts' });
+  const retryAfterSeconds = padUnlockRetryAfterSeconds(req);
+  if (retryAfterSeconds > 0) {
+    return res.status(429).json({ error: 'too_many_attempts', retryAfterSeconds });
   }
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
   if (!auth.verifyPadPassword(password, pad.password_hash)) {

@@ -46,11 +46,32 @@ func (rl *RateLimiter) allow(ip string) bool {
 	return true
 }
 
+// retryAfter reports how many seconds are left in ip's current window — 0 if
+// it isn't in a tracked window at all. Lets the client show a real countdown
+// instead of a generic "wait a bit".
+func (rl *RateLimiter) retryAfter(ip string) int {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	b, ok := rl.buckets[ip]
+	if !ok {
+		return 0
+	}
+	remaining := rl.window - time.Since(b.windowStart)
+	if remaining <= 0 {
+		return 0
+	}
+	secs := int(remaining.Round(time.Second) / time.Second)
+	if secs < 1 {
+		secs = 1
+	}
+	return secs
+}
+
 func (rl *RateLimiter) middleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip := clientIP(r, currentConfig)
 		if !rl.allow(ip) {
-			writeJSONError(w, http.StatusTooManyRequests, rl.message)
+			writeJSON(w, http.StatusTooManyRequests, map[string]any{"error": rl.message, "retryAfterSeconds": rl.retryAfter(ip)})
 			return
 		}
 		next(w, r)
@@ -59,7 +80,11 @@ func (rl *RateLimiter) middleware(next http.HandlerFunc) http.HandlerFunc {
 
 var (
 	loginLimiter       = newRateLimiter(15*time.Minute, 10, "too_many_attempts")
-	padPasswordLimiter = newRateLimiter(10*time.Minute, 15, "too_many_attempts")
+	// The blanket per-IP guard against abuse — brute-forcing a pad's
+	// password specifically is padUnlockAttemptLimiter's job below, so this
+	// one can afford to be generous rather than tripping on normal use
+	// (checking/changing a password a few times while setting up a pad).
+	padPasswordLimiter = newRateLimiter(10*time.Minute, 60, "too_many_attempts")
 	uploadLimiter      = newRateLimiter(5*time.Minute, 60, "too_many_uploads")
 	padWriteLimiter    = newRateLimiter(1*time.Minute, 120, "too_many_requests")
 
@@ -91,14 +116,21 @@ func newFailedAttemptLimiter(threshold int, lockout time.Duration) *FailedAttemp
 	return &FailedAttemptLimiter{threshold: threshold, lockout: lockout, state: map[string]*failState{}}
 }
 
-func (l *FailedAttemptLimiter) blocked(key string) bool {
+// blockedFor returns how much longer key stays locked out, or 0 if it isn't
+// (or never has been) — lets the caller tell the client exactly when it can
+// retry, instead of a generic "wait a bit".
+func (l *FailedAttemptLimiter) blockedFor(key string) time.Duration {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	s, ok := l.state[key]
 	if !ok {
-		return false
+		return 0
 	}
-	return time.Now().Before(s.lockedUntil)
+	remaining := time.Until(s.lockedUntil)
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
 }
 
 // recordFailure counts a wrong attempt, locking the key out once the

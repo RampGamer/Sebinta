@@ -372,16 +372,45 @@
     }
   });
 
+  // Shows a live countdown in an error <p> for a 429 response — el.error
+  // is expected to already hold the parsed JSON body ({ error,
+  // retryAfterSeconds }). Ticks down every second so the message stays
+  // accurate instead of a static "wait a bit" that's wrong a moment later.
+  function showRetryCountdown(el, retryAfterSeconds) {
+    if (el._countdownTimer) {
+      clearInterval(el._countdownTimer);
+      el._countdownTimer = null;
+    }
+    let remaining = Math.max(1, Math.round(retryAfterSeconds) || 0);
+    if (!remaining) {
+      el.textContent = 'Too many attempts. Wait a bit.';
+      return;
+    }
+    const render = () => { el.textContent = `Too many attempts. Try again in ${remaining}s.`; };
+    render();
+    el._countdownTimer = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(el._countdownTimer);
+        el._countdownTimer = null;
+        el.textContent = '';
+      } else {
+        render();
+      }
+    }, 1000);
+  }
+
   // --- pad password ---
+  const btnPasswordRemove = document.getElementById('btn-password-remove');
   document.getElementById('btn-password').addEventListener('click', () => {
     passwordError.textContent = '';
     document.getElementById('new-password').value = '';
+    btnPasswordRemove.hidden = !state.hasPassword;
     modalPassword.classList.add('active');
   });
   document.getElementById('btn-password-cancel').addEventListener('click', () => modalPassword.classList.remove('active'));
-  formPassword.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const password = document.getElementById('new-password').value;
+
+  async function savePassword(password) {
     const res = await api('/api/pad/password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -398,11 +427,23 @@
       toast(data.hasPassword ? 'Password set — this pad is now protected (look for the 🔒 icon next to the name).' : 'Password removed.', 'success');
     } else {
       const data = await res.json().catch(() => ({}));
-      passwordError.textContent = data.error === 'invalid_password_length'
-        ? 'The password must be between 4 and 200 characters.'
-        : 'Could not save the password.';
+      if (res.status === 429) {
+        showRetryCountdown(passwordError, data.retryAfterSeconds);
+      } else if (data.error === 'invalid_password_length') {
+        passwordError.textContent = 'The password must be between 4 and 200 characters.';
+      } else if (data.error === 'pad_locked') {
+        passwordError.textContent = 'This pad is protected — unlock it first.';
+      } else {
+        passwordError.textContent = 'Could not save the password.';
+      }
     }
+  }
+
+  formPassword.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    savePassword(document.getElementById('new-password').value);
   });
+  btnPasswordRemove.addEventListener('click', () => savePassword(''));
 
   formUnlock.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -422,7 +463,8 @@
       refresh();
       connectRealtime();
     } else if (res.status === 429) {
-      unlockError.textContent = 'Too many attempts. Wait a bit.';
+      const data = await res.json().catch(() => ({}));
+      showRetryCountdown(unlockError, data.retryAfterSeconds);
     } else {
       unlockError.textContent = 'Incorrect password.';
     }
