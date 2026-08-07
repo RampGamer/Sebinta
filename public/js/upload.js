@@ -56,48 +56,119 @@
     };
   }
 
-  function uploadWithProgress(file, progress) {
+  // Cloudflare's tunnel proxy (used by the standalone server's built-in
+  // quick/named tunnel — see standalone/tunnel.go) caps request bodies at
+  // 100MB on the plans this project targets. Files bigger than CHUNK_SIZE
+  // are split into pieces comfortably under that and sent as separate
+  // requests sharing an uploadId, sequentially — the server appends each
+  // one to an accumulating file and only assembles the real file record once
+  // the last chunk lands. Entirely invisible from here up: same button,
+  // same drag&drop, same progress bar: Sebinta.refresh() only ever sees the
+  // finished file, exactly as with a small, single-request upload.
+  const CHUNK_SIZE = 8 * 1024 * 1024;
+
+  // crypto.randomUUID needs a secure context (HTTPS, or localhost) — true
+  // for how this app is actually reached (Cloudflare tunnel or local dev),
+  // but this fallback keeps chunked uploads working even if not. Doesn't
+  // need to be unpredictable, just unique enough to key one upload's chunks.
+  function randomUploadId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    let id = '';
+    for (let i = 0; i < 32; i++) id += Math.floor(Math.random() * 16).toString(16);
+    return id;
+  }
+
+  function uploadErrorMessage(xhr) {
+    let message = 'Upload failed.';
+    try {
+      const data = JSON.parse(xhr.responseText);
+      if (data.error === 'metadata_cleanup_failed') {
+        message = data.message || 'Server-side metadata cleanup failed.';
+      } else if (data.error === 'file_too_large') {
+        message = `File too large (max ${data.maxMb} MB).`;
+      } else if (data.error === 'pad_locked') {
+        message = 'This pad is protected — unlock it first.';
+      } else if (data.error === 'too_many_uploads' || data.error === 'too_many_attempts') {
+        message = 'Too many uploads in a short time. Wait a bit.';
+      } else if (data.error) {
+        message = data.error;
+      }
+    } catch (e) { /* non-JSON response, keep the generic message */ }
+    return message;
+  }
+
+  // Sends one request — either the whole file (chunkMeta omitted) or one
+  // chunk of it. onLoaded reports bytes sent so far *within this request*,
+  // for the caller to fold into overall progress.
+  function sendOne(blob, fileName, chunkMeta, onLoaded) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', Sebinta.apiUrl('/api/files'));
+      let url = Sebinta.apiUrl('/api/files');
+      if (chunkMeta) {
+        url += `&uploadId=${encodeURIComponent(chunkMeta.uploadId)}` +
+          `&chunkIndex=${chunkMeta.chunkIndex}&totalChunks=${chunkMeta.totalChunks}`;
+      }
+      xhr.open('POST', url);
       xhr.setRequestHeader('X-CSRF-Token', Sebinta.csrfToken());
       xhr.upload.addEventListener('progress', (ev) => {
-        if (ev.lengthComputable) {
-          progress.setProgress(Math.round((ev.loaded / ev.total) * 100));
-          progress.setStatus('uploading… ' + Math.round((ev.loaded / ev.total) * 100) + '%');
-        }
+        if (ev.lengthComputable) onLoaded(ev.loaded);
       });
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          progress.setProgress(100);
-          progress.setStatus('done');
-          resolve();
+          onLoaded(blob.size);
+          try { resolve(JSON.parse(xhr.responseText)); } catch (e) { resolve(null); }
         } else {
-          let message = 'Upload failed.';
-          try {
-            const data = JSON.parse(xhr.responseText);
-            if (data.error === 'metadata_cleanup_failed') {
-              message = data.message || 'Server-side metadata cleanup failed.';
-            } else if (data.error === 'file_too_large') {
-              message = `File too large (max ${data.maxMb} MB).`;
-            } else if (data.error === 'pad_locked') {
-              message = 'This pad is protected — unlock it first.';
-            } else if (data.error === 'too_many_uploads') {
-              message = 'Too many uploads in a short time. Wait a bit.';
-            } else if (data.error) {
-              message = data.error;
-            }
-          } catch (e) { /* non-JSON response, keep the generic message */ }
-          reject(new Error(message));
+          reject(new Error(uploadErrorMessage(xhr)));
         }
       });
       xhr.addEventListener('error', () => reject(new Error('Network error during upload.')));
       xhr.addEventListener('abort', () => reject(new Error('Upload canceled.')));
 
       const formData = new FormData();
-      formData.append('file', file, file.name);
+      formData.append('file', blob, fileName);
       xhr.send(formData);
     });
+  }
+
+  async function sendOneWithRetry(blob, fileName, chunkMeta, onLoaded) {
+    const MAX_ATTEMPTS = 4;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await sendOne(blob, fileName, chunkMeta, onLoaded);
+      } catch (err) {
+        if (attempt >= MAX_ATTEMPTS || /^(File too large|This pad is protected|Too many uploads)/.test(err.message)) {
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+      }
+    }
+  }
+
+  async function uploadWithProgress(file, progress) {
+    const setPct = (loaded) => {
+      const pct = Math.round((loaded / file.size) * 100);
+      progress.setProgress(pct);
+      progress.setStatus('uploading… ' + pct + '%');
+    };
+
+    let result;
+    if (file.size <= CHUNK_SIZE) {
+      result = await sendOneWithRetry(file, file.name, null, setPct);
+    } else {
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const uploadId = randomUploadId();
+      let sentBytes = 0;
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const chunk = file.slice(start, Math.min(start + CHUNK_SIZE, file.size));
+        const base = sentBytes;
+        result = await sendOneWithRetry(chunk, file.name, { uploadId, chunkIndex, totalChunks }, (loaded) => setPct(base + loaded));
+        sentBytes += chunk.size;
+      }
+    }
+    progress.setProgress(100);
+    progress.setStatus('done');
+    return result;
   }
 
   async function handleOneFile(file) {
