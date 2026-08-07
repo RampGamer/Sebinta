@@ -17,16 +17,69 @@ const ws = require('../ws');
 
 const router = express.Router();
 
-// --- Multer: always writes to the QUARANTINE folder first, never to the final destination. ---
-const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, config.quarantineDir),
-  filename: (req, file, cb) => cb(null, crypto.randomUUID()),
-});
+// Chunked uploads (see public/js/upload.js): Cloudflare's tunnel proxy caps
+// request bodies at 100MB on the plans this project targets, so the browser
+// splits any file into chunks well under that and sends them as separate
+// requests sharing an uploadId, passed as query params (?uploadId=...&
+// chunkIndex=N&totalChunks=N) — available before the multipart body is
+// touched at all, unlike a form field. Older/other clients (the
+// sebinta-clean CLI's `send` command, curl, ...) that never send them keep
+// working exactly as before — this custom storage engine treats that as a
+// single chunk (0 of 1).
+const uploadIdRe = /^[a-fA-F0-9-]{1,64}$/;
 
-const upload = multer({
-  storage: multerStorage,
-  limits: { fileSize: config.maxFileSizeBytes, files: 1 },
-});
+// --- Multer: always writes to the QUARANTINE folder first, never to the final destination. ---
+// A custom storage engine (rather than multer.diskStorage) so a chunk
+// continuation can be *appended* to the same accumulating file instead of
+// each chunk landing in its own file that would need reassembling.
+const chunkedStorage = {
+  _handleFile(req, file, cb) {
+    const uploadId = typeof req.query.uploadId === 'string' ? req.query.uploadId : '';
+    const totalChunks = Number(req.query.totalChunks) || 0;
+    const chunkIndex = Number(req.query.chunkIndex) || 0;
+    const chunked = Boolean(uploadId) && totalChunks > 1;
+
+    if (chunked && !uploadIdRe.test(uploadId)) {
+      return cb(Object.assign(new Error('invalid_upload_id'), { code: 'INVALID_UPLOAD_ID' }));
+    }
+    if (chunked && (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= totalChunks)) {
+      return cb(Object.assign(new Error('invalid_chunk_index'), { code: 'INVALID_CHUNK_INDEX' }));
+    }
+
+    const destPath = chunked
+      ? path.join(config.quarantineDir, `chunk-${uploadId}`)
+      : path.join(config.quarantineDir, crypto.randomUUID());
+    const appending = chunked && chunkIndex > 0;
+
+    let priorSize = 0;
+    if (appending) {
+      try {
+        priorSize = fs.statSync(destPath).size;
+      } catch (e) { /* first chunk this server has seen for this id — starts at 0 */ }
+    }
+
+    let total = priorSize;
+    let tooLarge = false;
+    const out = fs.createWriteStream(destPath, { flags: appending ? 'a' : 'w' });
+    file.stream.on('data', (data) => {
+      total += data.length;
+      if (total > config.maxFileSizeBytes) tooLarge = true;
+    });
+    out.on('error', (err) => cb(err));
+    file.stream.pipe(out);
+    out.on('finish', () => {
+      if (tooLarge) {
+        return cb(Object.assign(new Error('file_too_large'), { code: 'LIMIT_FILE_SIZE' }));
+      }
+      cb(null, { path: destPath, filename: path.basename(destPath), size: total });
+    });
+  },
+  _removeFile(req, file, cb) {
+    fs.unlink(file.path, () => cb(null));
+  },
+};
+
+const upload = multer({ storage: chunkedStorage });
 
 function sanitizeOriginalName(name) {
   const base = path.basename(String(name || 'file'));
@@ -83,7 +136,7 @@ function fileToJson(f) {
 }
 
 /*
- * POST /api/files?id=... (multipart/form-data, field "file")
+ * POST /api/files?id=...[&uploadId=...&chunkIndex=N&totalChunks=N] (multipart/form-data, field "file")
  *
  * No metadata cleaning on the server — anyone who needs that guarantee
  * uses the desktop app (desktop/) or the CLI (cli/) before uploading.
@@ -91,16 +144,39 @@ function fileToJson(f) {
  * compatibility with existing Docker volumes) just to allow detecting the
  * real type via magic bytes before moving to uploads/final/.
  */
-router.post('/', uploadLimiter, auth.csrfProtection, requireUnlockedPad, (req, res) => {
+router.post('/', auth.csrfProtection, requireUnlockedPad, (req, res, next) => {
+  // Only the first request of an upload (the whole file, or chunk 0) counts
+  // against uploadLimiter — otherwise a single large file, split into dozens
+  // of chunk requests, would exhaust the abuse limit on its own and block
+  // the rest of its own chunks.
+  const chunkIndex = Number(req.query.chunkIndex) || 0;
+  if (chunkIndex === 0) return uploadLimiter(req, res, next);
+  next();
+}, (req, res) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ error: 'file_too_large', maxMb: config.maxFileSizeMb });
       }
+      if (err.code === 'INVALID_UPLOAD_ID') {
+        return res.status(400).json({ error: 'invalid_upload_id' });
+      }
+      if (err.code === 'INVALID_CHUNK_INDEX') {
+        return res.status(400).json({ error: 'invalid_chunk_index' });
+      }
       return res.status(400).json({ error: 'upload_failed' });
     }
     if (!req.file) {
       return res.status(400).json({ error: 'no_file' });
+    }
+
+    const uploadId = typeof req.query.uploadId === 'string' ? req.query.uploadId : '';
+    const totalChunks = Number(req.query.totalChunks) || 0;
+    const chunkIndex = Number(req.query.chunkIndex) || 0;
+    const chunked = Boolean(uploadId) && totalChunks > 1;
+
+    if (chunked && chunkIndex < totalChunks - 1) {
+      return res.status(200).json({ ok: true, chunkIndex });
     }
 
     const quarantineFile = req.file.path;
@@ -113,14 +189,18 @@ router.post('/', uploadLimiter, auth.csrfProtection, requireUnlockedPad, (req, r
       // The stored name includes the real extension detected via magic
       // bytes (never the extension declared by the client), so the
       // Content-Type served in /download and /preview is always correct.
-      const storedName = `${req.file.filename}${sniffed.ext || ''}`;
+      // A fresh ID here — never req.file.filename, which for a chunked
+      // upload is the shared "chunk-<uploadId>" accumulator name, not a
+      // per-file ID.
+      const fileId = crypto.randomUUID();
+      const storedName = `${fileId}${sniffed.ext || ''}`;
       const finalDest = storage.finalPath(storedName);
       await fsp.rename(quarantineFile, finalDest);
       finalStoredPath = finalDest;
 
       const stat = await fsp.stat(finalDest);
       const fileRow = {
-        id: req.file.filename,
+        id: fileId,
         pad_id: req.padId,
         original_name: sanitizeOriginalName(req.file.originalname),
         stored_name: storedName,
