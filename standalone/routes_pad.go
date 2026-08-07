@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"net/http"
+	"time"
 )
 
 func fileToJSON(f *File) map[string]any {
@@ -202,8 +203,12 @@ func handlePadUnlock(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http.Re
 			return
 		}
 		attemptKey := clientIP(r, cfg) + ":" + padID
-		if padUnlockAttemptLimiter.blocked(attemptKey) {
-			writeJSONError(w, http.StatusTooManyRequests, "too_many_attempts")
+		if remaining := padUnlockAttemptLimiter.blockedFor(attemptKey); remaining > 0 {
+			retryAfter := int(remaining.Round(time.Second) / time.Second)
+			if retryAfter < 1 {
+				retryAfter = 1
+			}
+			writeJSON(w, http.StatusTooManyRequests, map[string]any{"error": "too_many_attempts", "retryAfterSeconds": retryAfter})
 			return
 		}
 		var body padPasswordBody

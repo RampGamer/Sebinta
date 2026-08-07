@@ -155,11 +155,12 @@
 <div class="modal-backdrop" id="modal-password">
   <div class="modal">
     <h3>This pad's password</h3>
-    <p class="hint">Set a password for this pad, or leave it blank to remove protection.</p>
+    <p class="hint">Set a password for this pad, or leave it blank and save to remove protection.</p>
     <form id="form-password" autocomplete="off">
       <input type="password" id="new-password" placeholder="New password (minimum 4 characters)">
       <p class="error-msg" id="password-error"></p>
       <div class="row">
+        <button type="button" id="btn-password-remove" class="danger" hidden>Remove password</button>
         <button type="button" id="btn-password-cancel">Cancel</button>
         <button type="submit" class="primary">Save</button>
       </div>
