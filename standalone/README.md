@@ -66,10 +66,18 @@ tunnel and route it to that domain in the Cloudflare dashboard (steps in
 
 The domain itself isn't something this binary knows about — it's tied to
 the tunnel token on Cloudflare's side; the binary just authenticates as
-that tunnel. To run local-only, with no tunnel at all:
+that tunnel. To run local-only, with no tunnel at all, either set
+`DISABLE_TUNNEL=true` or pass `--local`:
 
 ```bash
-DISABLE_TUNNEL=true ./sebinta-server-linux-amd64
+./sebinta-server-linux-amd64 --local
+```
+
+Run with `--help` (or `-h`) at any time to list every flag from the
+binary itself, with a short description of each:
+
+```bash
+./sebinta-server-linux-amd64 --help
 ```
 
 Configure the rest with the same environment variables as the Docker

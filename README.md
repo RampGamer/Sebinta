@@ -50,7 +50,7 @@ chmod +x sebinta-server-*        # downloads lose the executable bit
 ./sebinta-server-*
 ```
 
-Starts the server, opens a Cloudflare Quick Tunnel, and prints the public URL. `DISABLE_TUNNEL=true` to stay local-only. Details: [`standalone/README.md`](standalone/README.md).
+Starts the server, opens a Cloudflare Quick Tunnel, and prints the public URL. `--local` (or `DISABLE_TUNNEL=true`) to stay local-only; `--help` lists every flag. Details: [`standalone/README.md`](standalone/README.md).
 
 ### Option C — Desktop app
 
