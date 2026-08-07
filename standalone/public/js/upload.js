@@ -28,11 +28,20 @@
     const nameEl = document.createElement('span');
     nameEl.className = 'name';
     nameEl.textContent = name;
+    const speedEl = document.createElement('span');
+    speedEl.className = 'speed';
     const statusEl = document.createElement('span');
     statusEl.className = 'status';
     statusEl.textContent = 'preparing…';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'upload-cancel-btn';
+    cancelBtn.title = 'Cancel upload';
+    cancelBtn.textContent = '✕';
     label.appendChild(nameEl);
+    label.appendChild(speedEl);
     label.appendChild(statusEl);
+    label.appendChild(cancelBtn);
     const track = document.createElement('div');
     track.className = 'progress-track';
     const fill = document.createElement('div');
@@ -44,16 +53,55 @@
     item.appendChild(track);
     item.appendChild(errorMsg);
     progressList.appendChild(item);
+
+    let cancelHandler = null;
+    cancelBtn.addEventListener('click', () => { if (cancelHandler) cancelHandler(); });
+
     return {
       setStatus: (text) => { statusEl.textContent = text; },
       setProgress: (pct) => { fill.style.width = pct + '%'; },
+      setSpeed: (text) => { speedEl.textContent = text; },
+      onCancel: (fn) => { cancelHandler = fn; },
+      hideCancel: () => { cancelBtn.style.display = 'none'; },
       setError: (msg) => {
         item.classList.add('error');
         errorMsg.textContent = msg;
         statusEl.textContent = 'failed';
+        speedEl.textContent = '';
       },
       remove: () => item.remove(),
     };
+  }
+
+  // Smoothed transfer rate from periodic (time, bytesLoaded) samples — raw
+  // deltas between individual XHR progress events are too jumpy (fired in
+  // irregular bursts) to show directly as a speed/ETA.
+  function createSpeedTracker() {
+    let lastTime = performance.now();
+    let lastBytes = 0;
+    let rate = 0; // bytes/sec, exponentially smoothed
+    return function sample(bytesLoaded) {
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000;
+      if (dt < 0.2) return rate; // too soon since the last sample — reuse it
+      const instant = Math.max(0, (bytesLoaded - lastBytes) / dt);
+      rate = rate === 0 ? instant : rate * 0.7 + instant * 0.3;
+      lastTime = now;
+      lastBytes = bytesLoaded;
+      return rate;
+    };
+  }
+
+  function formatSpeedEta(bytesPerSec, bytesRemaining) {
+    if (!(bytesPerSec > 0)) return '';
+    const speed = bytesPerSec >= 1024 * 1024
+      ? (bytesPerSec / (1024 * 1024)).toFixed(1) + ' MB/s'
+      : Math.max(1, Math.round(bytesPerSec / 1024)) + ' KB/s';
+    const etaSeconds = bytesRemaining / bytesPerSec;
+    const eta = etaSeconds < 60
+      ? Math.ceil(etaSeconds) + 's left'
+      : Math.floor(etaSeconds / 60) + 'm ' + Math.round(etaSeconds % 60) + 's left';
+    return `${speed} · ${eta}`;
   }
 
   // Cloudflare's tunnel proxy (used by the standalone server's built-in
@@ -99,10 +147,18 @@
 
   // Sends one request — either the whole file (chunkMeta omitted) or one
   // chunk of it. onLoaded reports bytes sent so far *within this request*,
-  // for the caller to fold into overall progress.
-  function sendOne(blob, fileName, chunkMeta, onLoaded) {
+  // for the caller to fold into overall progress. cancelToken.xhr is set to
+  // this request's XHR so a click on the cancel button (which only has the
+  // token, not this closure) can abort whichever request is currently
+  // in-flight.
+  function sendOne(blob, fileName, chunkMeta, onLoaded, cancelToken) {
     return new Promise((resolve, reject) => {
+      if (cancelToken && cancelToken.cancelled) {
+        reject(new Error('Upload canceled.'));
+        return;
+      }
       const xhr = new XMLHttpRequest();
+      if (cancelToken) cancelToken.xhr = xhr;
       let url = Sebinta.apiUrl('/api/files');
       if (chunkMeta) {
         url += `&uploadId=${encodeURIComponent(chunkMeta.uploadId)}` +
@@ -136,13 +192,17 @@
     });
   }
 
-  async function sendOneWithRetry(blob, fileName, chunkMeta, onLoaded) {
+  async function sendOneWithRetry(blob, fileName, chunkMeta, onLoaded, cancelToken) {
     const MAX_ATTEMPTS = 4;
     for (let attempt = 1; ; attempt++) {
       try {
-        return await sendOne(blob, fileName, chunkMeta, onLoaded);
+        return await sendOne(blob, fileName, chunkMeta, onLoaded, cancelToken);
       } catch (err) {
-        if (attempt >= MAX_ATTEMPTS || /^(File too large|This pad is protected|Too many uploads)/.test(err.message)) {
+        if (
+          (cancelToken && cancelToken.cancelled) ||
+          attempt >= MAX_ATTEMPTS ||
+          /^(File too large|This pad is protected|Too many uploads)/.test(err.message)
+        ) {
           throw err;
         }
         await new Promise((r) => setTimeout(r, 500 * attempt));
@@ -150,16 +210,18 @@
     }
   }
 
-  async function uploadWithProgress(file, progress) {
+  async function uploadWithProgress(file, progress, cancelToken) {
+    const speedSample = createSpeedTracker();
     const setPct = (loaded) => {
       const pct = Math.round((loaded / file.size) * 100);
       progress.setProgress(pct);
       progress.setStatus('uploading… ' + pct + '%');
+      progress.setSpeed(formatSpeedEta(speedSample(loaded), file.size - loaded));
     };
 
     let result;
     if (file.size <= CHUNK_SIZE) {
-      result = await sendOneWithRetry(file, file.name, null, setPct);
+      result = await sendOneWithRetry(file, file.name, null, setPct, cancelToken);
     } else {
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
       const uploadId = randomUploadId();
@@ -168,26 +230,40 @@
         const start = chunkIndex * CHUNK_SIZE;
         const chunk = file.slice(start, Math.min(start + CHUNK_SIZE, file.size));
         const base = sentBytes;
-        result = await sendOneWithRetry(chunk, file.name, { uploadId, chunkIndex, totalChunks }, (loaded) => setPct(base + loaded));
+        result = await sendOneWithRetry(
+          chunk, file.name, { uploadId, chunkIndex, totalChunks },
+          (loaded) => setPct(base + loaded), cancelToken,
+        );
         sentBytes += chunk.size;
+        if (cancelToken && cancelToken.cancelled) throw new Error('Upload canceled.');
       }
     }
     progress.setProgress(100);
     progress.setStatus('done');
+    progress.setSpeed('');
     return result;
   }
 
   async function handleOneFile(file) {
     const progress = createProgressItem(file.name);
+    const cancelToken = { cancelled: false, xhr: null };
+    progress.onCancel(() => {
+      cancelToken.cancelled = true;
+      if (cancelToken.xhr) cancelToken.xhr.abort();
+    });
     try {
       const toUpload = preUploadHook ? await preUploadHook(file, progress.setStatus) : file;
       progress.setStatus('uploading…');
-      await uploadWithProgress(toUpload, progress);
+      await uploadWithProgress(toUpload, progress, cancelToken);
+      progress.hideCancel();
       Sebinta.refresh();
       setTimeout(() => progress.remove(), 1200);
     } catch (err) {
+      progress.hideCancel();
       progress.setError(err.message || 'Unknown failure.');
-      Sebinta.toast(`${file.name}: ${err.message || 'upload failed'}`, 'error');
+      if (err.message !== 'Upload canceled.') {
+        Sebinta.toast(`${file.name}: ${err.message || 'upload failed'}`, 'error');
+      }
       setTimeout(() => progress.remove(), 8000);
     }
   }

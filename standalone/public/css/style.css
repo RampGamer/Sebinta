@@ -316,12 +316,44 @@ section.files h2 {
 }
 .upload-progress-item .label {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0.3rem;
   color: var(--text-dim);
   gap: 0.5rem;
 }
-.upload-progress-item .label .name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-progress-item .label .name {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.upload-progress-item .label .status,
+.upload-progress-item .label .speed {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.upload-progress-item .label .speed { font-variant-numeric: tabular-nums; }
+.upload-cancel-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.upload-cancel-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.upload-progress-item.error .upload-cancel-btn,
+.upload-progress-item.done .upload-cancel-btn { display: none; }
 .progress-track {
   height: 6px;
   border-radius: 3px;
@@ -791,6 +823,8 @@ body.theme-notebook .upload-progress-item .label {
   color: var(--nb-ink-soft);
 }
 body.theme-notebook .upload-progress-item .label .name { color: var(--nb-ink); font-weight: 700; }
+body.theme-notebook .upload-cancel-btn { border-color: var(--nb-ink-soft); color: var(--nb-ink-soft); }
+body.theme-notebook .upload-cancel-btn:hover { color: var(--nb-ink); border-color: var(--nb-ink); }
 body.theme-notebook .progress-track { background: rgba(35, 39, 58, 0.12); }
 body.theme-notebook .upload-progress-item .error-msg { font-family: var(--nb-font-hand); font-size: 1.05rem; }
 
