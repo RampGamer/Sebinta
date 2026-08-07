@@ -79,9 +79,9 @@ Summary of today's work on Sebinta (formerly Filepad), from the rebrand through 
 | `v1.8.4` | Second translation pass (accent-only check had missed unaccented Portuguese); GitHub repo description/topics set in English |
 | `v1.8.5` | `--tunnel-token` flag on the standalone server, for a fixed custom domain without a `.env` file |
 | `v1.8.6` | ANSI colors now work in the native Windows console (`cmd.exe`/legacy PowerShell); fixed the unlock prompt flashing right after setting a pad password; 5-failed-attempts/30s rate limit on pad-password guessing |
-| `v1.8.7` | Uploads are split into 8MB chunks client-side, so files over Cloudflare's 100MB per-request cap work on a custom tunnel domain. Server-only change — the CLI and desktop app binaries in this release are unchanged from `v1.8.6` |
+| `v1.8.7` | Uploads are split into 8MB chunks client-side, so files over Cloudflare's 100MB per-request cap work on a custom tunnel domain. Server-only change — the desktop app binaries in this release are unchanged from `v1.8.6`. The CLI (`sebinta-clean`) is no longer published as a prebuilt binary from this release on |
 
-Each release includes: standalone Go server (`sebinta-server-vX.Y.Z-*`, 4 platforms), metadata-cleaning CLI (`sebinta-clean-vX.Y.Z-*`, 4 platforms), and Electron desktop app (`Sebinta-desktop-vX.Y.Z-*`: AppImage, portable `.exe`, macOS x64/arm64 `.zip`), plus a `SHA256SUMS.txt`.
+Through `v1.8.6`, each release included: standalone Go server (`sebinta-server-vX.Y.Z-*`, 4 platforms), metadata-cleaning CLI (`sebinta-clean-vX.Y.Z-*`, 4 platforms), and Electron desktop app (`Sebinta-desktop-vX.Y.Z-*`: AppImage, portable `.exe`, macOS x64/arm64 `.zip`), plus a `SHA256SUMS.txt`. From `v1.8.7` on, the CLI is no longer published as a prebuilt binary — build it from `cli/` yourself if you need it (see `cli/README.md`). Releases now include just the standalone server and the desktop app, plus `SHA256SUMS.txt`.
 
 ## Issues reported and resolved today
 
