@@ -110,6 +110,11 @@
       }
       xhr.open('POST', url);
       xhr.setRequestHeader('X-CSRF-Token', Sebinta.csrfToken());
+      // Without this, a chunk whose connection stalls (a dropped packet the
+      // OS/proxy never resets, a flaky tunnel reconnect, ...) never fires
+      // load/error/abort — this promise would hang forever, freezing the
+      // whole upload on that one chunk's percentage with no error shown.
+      xhr.timeout = 60000;
       xhr.upload.addEventListener('progress', (ev) => {
         if (ev.lengthComputable) onLoaded(ev.loaded);
       });
@@ -123,6 +128,7 @@
       });
       xhr.addEventListener('error', () => reject(new Error('Network error during upload.')));
       xhr.addEventListener('abort', () => reject(new Error('Upload canceled.')));
+      xhr.addEventListener('timeout', () => reject(new Error('Upload timed out.')));
 
       const formData = new FormData();
       formData.append('file', blob, fileName);
