@@ -5,11 +5,45 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 )
+
+func printUsage() {
+	fmt.Fprint(os.Stderr, `sebinta-server — single-binary Sebinta server: real-time text pads and
+file sharing, with a public HTTPS URL via an embedded Cloudflare tunnel
+(no separate install, no reverse proxy to set up).
+
+Usage:
+  sebinta-server [flags]
+
+Flags:
+  -port PORT
+        TCP port to listen on (overrides $PORT and .env; default 3000)
+  -tunnel-token TOKEN
+        Cloudflare named-tunnel token for a fixed domain, instead of a
+        random Quick Tunnel URL (overrides $TUNNEL_TOKEN and .env)
+  -local
+        Don't start the embedded Cloudflare tunnel — same as
+        DISABLE_TUNNEL=true, just shorter to type
+  -h, -help
+        Show this help
+
+Examples:
+  sebinta-server                              Quick Tunnel: random *.trycloudflare.com URL, printed on startup
+  sebinta-server -port 8080                   Listen on a different port
+  sebinta-server -local                       Local access only, no tunnel
+  sebinta-server -tunnel-token eyJhIjoi...    Fixed domain, via a Cloudflare named tunnel
+
+Everything else — site password, upload size limit, cookie settings,
+file TTL, and more — is set via environment variables or a .env file
+next to the binary (same variables as the Docker image). Full list in
+standalone/README.md.
+`)
+}
 
 // loadDotEnv reads a simple .env file (KEY=VALUE per line, '#' for
 // comments) with no external library dependency. Never overrides an
@@ -102,6 +136,8 @@ func randomHex(n int) string {
 func loadConfig() *Config {
 	portFlag := flag.String("port", "", "TCP port to listen on (overrides $PORT and .env; default 3000)")
 	tunnelTokenFlag := flag.String("tunnel-token", "", "Cloudflare named-tunnel token for a fixed domain (overrides $TUNNEL_TOKEN and .env)")
+	localFlag := flag.Bool("local", false, "Don't start the embedded Cloudflare tunnel — same as DISABLE_TUNNEL=true, just shorter to type")
+	flag.Usage = printUsage
 	flag.Parse()
 
 	rootDir, err := os.Getwd()
@@ -159,7 +195,7 @@ func loadConfig() *Config {
 		FinalDir:      filepath.Join(uploadsDir, "final"),
 		LogPath:       logPath,
 
-		DisableTunnel: envBool("DISABLE_TUNNEL", false),
+		DisableTunnel: envBool("DISABLE_TUNNEL", false) || *localFlag,
 		TunnelToken:   tunnelToken,
 
 		SitePassword: os.Getenv("SITE_PASSWORD"),
