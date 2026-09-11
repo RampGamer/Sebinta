@@ -533,6 +533,16 @@
     });
   }
 
+  // Navigating to a different pad (the "Go" form) replaces the whole page,
+  // but the browser doesn't always tear down an in-flight WebSocket
+  // promptly as part of that — closing it explicitly here means the server
+  // sees the close frame right away instead of only noticing once the
+  // connection times out (up to ~20s later), so the 👁 viewer badge on
+  // other tabs updates immediately instead of lagging behind.
+  window.addEventListener('pagehide', () => {
+    if (ws) ws.close();
+  });
+
   function startPolling() {
     if (pollTimer) return;
     pollTimer = setInterval(refresh, 4000);
