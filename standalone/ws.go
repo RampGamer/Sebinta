@@ -139,9 +139,9 @@ func handleWS(cfg *Config, db *sql.DB, hub *wsHub) http.HandlerFunc {
 		hub.join(padID, conn)
 		hub.broadcastPresence(padID)
 
-		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(20 * time.Second))
 		conn.SetPongHandler(func(string) error {
-			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			conn.SetReadDeadline(time.Now().Add(20 * time.Second))
 			return nil
 		})
 
@@ -155,7 +155,7 @@ func handleWS(cfg *Config, db *sql.DB, hub *wsHub) http.HandlerFunc {
 			}
 		}()
 
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(8 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {

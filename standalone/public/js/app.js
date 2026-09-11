@@ -228,14 +228,12 @@
     modalUnlock.classList.remove('active');
 
     if (data.version !== state.version) {
-      const editorFocused = document.activeElement === editor;
+      // Only protection is "don't clobber content the user is actively
+      // typing right now" — having the cursor in the field otherwise
+      // doesn't block a live update, so remote edits show up immediately
+      // instead of waiting for blur.
       const recentlyEdited = Date.now() - lastLocalEditAt < 4000;
-      // While the user is using the editor, don't clobber their
-      // cursor/selection with the remote content — but also don't advance
-      // state.version, or this update gets silently dropped forever (until
-      // another remote edit happens) instead of being retried once the user
-      // is done. The blur listener below is what retries it promptly.
-      if (!editorFocused && !recentlyEdited) {
+      if (!recentlyEdited) {
         editor.value = data.content;
         state.version = data.version;
       }
