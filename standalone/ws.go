@@ -65,6 +65,28 @@ func (h *wsHub) broadcastPadChanged(padID string, extra map[string]any) {
 	}
 }
 
+// broadcastPresence tells every connection in padID's room how many
+// connections are currently open on that pad (itself included) — the client
+// shows a "someone else is viewing" indicator when count > 1, since it
+// always counts itself as one of them.
+func (h *wsHub) broadcastPresence(padID string) {
+	h.mu.Lock()
+	room := h.rooms[padID]
+	count := len(room)
+	conns := make([]*websocket.Conn, 0, count)
+	for c := range room {
+		conns = append(conns, c)
+	}
+	h.mu.Unlock()
+	if len(conns) == 0 {
+		return
+	}
+	b, _ := json.Marshal(map[string]any{"type": "presence", "count": count})
+	for _, c := range conns {
+		_ = c.WriteMessage(websocket.TextMessage, b)
+	}
+}
+
 var wsUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -115,6 +137,7 @@ func handleWS(cfg *Config, db *sql.DB, hub *wsHub) http.HandlerFunc {
 			return
 		}
 		hub.join(padID, conn)
+		hub.broadcastPresence(padID)
 
 		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		conn.SetPongHandler(func(string) error {
@@ -138,11 +161,13 @@ func handleWS(cfg *Config, db *sql.DB, hub *wsHub) http.HandlerFunc {
 			select {
 			case <-done:
 				hub.leave(padID, conn)
+				hub.broadcastPresence(padID)
 				conn.Close()
 				return
 			case <-ticker.C:
 				if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
 					hub.leave(padID, conn)
+					hub.broadcastPresence(padID)
 					conn.Close()
 					return
 				}

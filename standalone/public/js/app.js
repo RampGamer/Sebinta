@@ -82,6 +82,8 @@
   const fileGrid = document.getElementById('file-grid');
   const toastContainer = document.getElementById('toast-container');
 
+  const viewerBadge = document.getElementById('viewer-badge');
+
   const modalUnlock = document.getElementById('modal-unlock');
   const formUnlock = document.getElementById('form-unlock');
   const unlockError = document.getElementById('unlock-error');
@@ -171,6 +173,11 @@
     statusText.textContent = text;
   }
 
+  // count includes this tab itself, so the badge only shows for count > 1.
+  function updateViewerBadge(count) {
+    viewerBadge.hidden = !(typeof count === 'number' && count > 1);
+  }
+
   function formatSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     const units = ['KB', 'MB', 'GB'];
@@ -223,10 +230,15 @@
     if (data.version !== state.version) {
       const editorFocused = document.activeElement === editor;
       const recentlyEdited = Date.now() - lastLocalEditAt < 4000;
+      // While the user is using the editor, don't clobber their
+      // cursor/selection with the remote content — but also don't advance
+      // state.version, or this update gets silently dropped forever (until
+      // another remote edit happens) instead of being retried once the user
+      // is done. The blur listener below is what retries it promptly.
       if (!editorFocused && !recentlyEdited) {
         editor.value = data.content;
+        state.version = data.version;
       }
-      state.version = data.version;
     }
     renderFiles(data.files || []);
   }
@@ -336,6 +348,11 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveContent, 600);
   });
+
+  // Catches up immediately on any remote edit that arrived while this tab
+  // had the editor focused (and was therefore skipped in refresh()), rather
+  // than waiting for the next remote change to trigger a retry.
+  editor.addEventListener('blur', () => refresh());
 
   async function saveContent() {
     const content = editor.value;
@@ -497,12 +514,17 @@
       try {
         const msg = JSON.parse(ev.data);
         if (msg.type === 'changed') refresh();
+        else if (msg.type === 'presence') updateViewerBadge(msg.count);
       } catch (e) { /* ignores invalid messages */ }
     });
     ws.addEventListener('close', () => {
       clearTimeout(connectTimeout);
       wsFailCount++;
       setStatus('offline', 'live connection lost');
+      // Presence is a WebSocket-only feature (no polling equivalent) — once
+      // disconnected we no longer know who else is here, so hide it rather
+      // than show a stale count.
+      updateViewerBadge(0);
       startPolling();
       // Tries to reconnect with backoff, up to 30s.
       const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(wsFailCount, 5)));
