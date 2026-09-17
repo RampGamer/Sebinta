@@ -196,6 +196,12 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* lets #editor's own overflow:auto actually take effect —
+                    without this, a flex item's automatic min-height keeps
+                    it (and this whole chain, up through #app-frame) at
+                    least as tall as its content, so a big paste pushes the
+                    page taller and drags the footer down mid-content
+                    instead of the editor scrolling internally. */
 }
 /* main {display:flex} (author rule) beats the browser stylesheet's
    [hidden] (UA-only) — without this, "hidden" wasn't hiding anything. */
@@ -452,6 +458,8 @@ footer.hint {
   color: var(--text-dim);
   font-size: 0.75rem;
   padding: 0.8rem;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 @media (max-width: 640px) {
