@@ -275,6 +275,115 @@
     }
   }
 
+  // --- dropped folders: zipped client-side, then uploaded like any file ---
+  // A dropped folder has no bytes of its own to send — this reads its full
+  // tree (via the drag & drop Entries API) and zips it (fflate, vendored
+  // locally — no CDN, same as DOMPurify) before handing it to the normal
+  // upload pipeline. Bounded defensively since a folder's size is entirely
+  // up to whoever dropped it: MAX_ZIP_FILES/MAX_ZIP_TOTAL_BYTES stop a huge
+  // tree from exhausting this tab's memory while walking/zipping it, and
+  // MAX_ZIP_DEPTH guards against pathological nesting — independent of,
+  // and in addition to, the server's own MAX_FILE_SIZE_MB check on the
+  // finished zip once it's actually uploaded.
+  const MAX_ZIP_FILES = 5000;
+  const MAX_ZIP_TOTAL_BYTES = 300 * 1024 * 1024;
+  const MAX_ZIP_DEPTH = 30;
+
+  function readDirEntries(reader) {
+    return new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+  }
+
+  // Defense in depth: entry names come from the browser's own Entries API
+  // (not attacker-controlled the way a server upload would be), but strip
+  // empty/"."/".." segments before they become paths inside the zip anyway
+  // — cheap, and means this zip can never contain a traversal path
+  // regardless of what produced the entry tree.
+  function normalizeZipPath(path) {
+    const clean = path.split('/').filter((seg) => seg && seg !== '.' && seg !== '..').join('/');
+    return clean || '_'; // every segment was stripped — keep the entry, not lose it silently
+  }
+
+  async function walkDirectoryEntry(rootEntry, basePath, depth, cancelToken, state) {
+    if (depth > MAX_ZIP_DEPTH) throw new Error('Folder is nested too deeply.');
+    const reader = rootEntry.createReader();
+    const out = [];
+    let batch;
+    do {
+      if (cancelToken.cancelled) throw new Error('Upload canceled.');
+      // readEntries() only returns up to ~100 entries per call — looping
+      // until it returns an empty array is required to see everything.
+      batch = await readDirEntries(reader);
+      for (const entry of batch) {
+        const path = basePath + entry.name;
+        if (entry.isDirectory) {
+          const nested = await walkDirectoryEntry(entry, path + '/', depth + 1, cancelToken, state);
+          out.push(...nested);
+        } else {
+          const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+          state.count++;
+          if (state.count > MAX_ZIP_FILES) throw new Error(`Too many files in this folder (max ${MAX_ZIP_FILES}).`);
+          state.bytes += file.size;
+          if (state.bytes > MAX_ZIP_TOTAL_BYTES) {
+            throw new Error(`This folder is too large to zip in the browser (max ${MAX_ZIP_TOTAL_BYTES / (1024 * 1024)}MB).`);
+          }
+          out.push({ path: normalizeZipPath(path), file });
+        }
+      }
+    } while (batch.length > 0);
+    return out;
+  }
+
+  function buildZip(entries, cancelToken, onProgress) {
+    return (async () => {
+      const fileMap = {};
+      for (let i = 0; i < entries.length; i++) {
+        if (cancelToken.cancelled) throw new Error('Upload canceled.');
+        const { path, file } = entries[i];
+        const buf = await file.arrayBuffer();
+        fileMap[path] = new Uint8Array(buf);
+        onProgress(i + 1, entries.length);
+      }
+      return new Promise((resolve, reject) => {
+        window.fflate.zip(fileMap, { level: 6 }, (err, data) => {
+          if (err) reject(err);
+          else resolve(new Blob([data], { type: 'application/zip' }));
+        });
+      });
+    })();
+  }
+
+  async function handleDroppedDirectory(dirEntry) {
+    const zipName = dirEntry.name + '.zip';
+    const progress = createProgressItem(zipName);
+    const cancelToken = { cancelled: false, xhr: null };
+    progress.onCancel(() => {
+      cancelToken.cancelled = true;
+      if (cancelToken.xhr) cancelToken.xhr.abort();
+    });
+    try {
+      progress.setStatus('zipping folder…');
+      const entries = await walkDirectoryEntry(dirEntry, '', 0, cancelToken, { count: 0, bytes: 0 });
+      if (!entries.length) throw new Error('Folder is empty.');
+      const zipBlob = await buildZip(entries, cancelToken, (done, total) => {
+        progress.setStatus(`zipping folder… ${done}/${total}`);
+      });
+      if (cancelToken.cancelled) throw new Error('Upload canceled.');
+      const zipFile = new File([zipBlob], zipName, { type: 'application/zip' });
+      progress.setStatus('uploading…');
+      await uploadWithProgress(zipFile, progress, cancelToken);
+      progress.hideCancel();
+      Sebinta.refresh();
+      setTimeout(() => progress.remove(), 1200);
+    } catch (err) {
+      progress.hideCancel();
+      progress.setError(err.message || 'Could not zip this folder.');
+      if (err.message !== 'Upload canceled.') {
+        Sebinta.toast(`${dirEntry.name}: ${err.message || 'could not zip this folder'}`, 'error');
+      }
+      setTimeout(() => progress.remove(), 8000);
+    }
+  }
+
   // --- button ---
   chooseBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => {
@@ -294,42 +403,82 @@
     if (dragCounter === 0) dropzoneOverlay.classList.remove('active');
   });
   window.addEventListener('dragover', (ev) => ev.preventDefault());
+
+  // dataTransfer.files alone can't tell a dropped folder apart from a
+  // genuine empty file, but each item's entry (the drag & drop Entries
+  // API) can, via .isDirectory — separated out here so folders go through
+  // handleDroppedDirectory (zip client-side, then upload) instead of
+  // handleFiles (which has no bytes to send for a folder).
+  function splitDroppedItems(dataTransfer) {
+    const files = [];
+    const directoryEntries = [];
+    if (dataTransfer.items && dataTransfer.items.length) {
+      for (const item of dataTransfer.items) {
+        if (item.kind !== 'file') continue;
+        const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+        if (entry && entry.isDirectory) {
+          directoryEntries.push(entry);
+          continue;
+        }
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    } else if (dataTransfer.files) {
+      // No Entries API support (old browser) — nothing to detect a folder
+      // with, fall back to the plain FileList as before.
+      files.push(...Array.from(dataTransfer.files));
+    }
+    return { files, directoryEntries };
+  }
+
   window.addEventListener('drop', (ev) => {
     ev.preventDefault();
     dragCounter = 0;
     dropzoneOverlay.classList.remove('active');
-    if (ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files.length) {
-      handleFiles(ev.dataTransfer.files);
-    }
+    if (!ev.dataTransfer) return;
+    const { files, directoryEntries } = splitDroppedItems(ev.dataTransfer);
+    if (files.length) handleFiles(files);
+    for (const entry of directoryEntries) handleDroppedDirectory(entry);
   });
 
   // --- paste (Ctrl+V) ---
-  // Three-way branch: files (screenshots etc, handled anywhere on the page,
-  // not just the editor — matches the existing "paste" hint next to the
-  // upload button) > an HTML table/rich content pasted into the focused
+  // Three-way branch: an HTML table/rich content pasted into the focused
   // editor (sanitized, then inserted as real DOM — see insertHtmlAtCaret)
-  // > plain text, which is left to the browser's native contenteditable
-  // paste (no interception needed).
+  // > files (screenshots etc, handled anywhere on the page, not just the
+  // editor — matches the existing "paste" hint next to the upload button)
+  // > plain text, left to the browser's native contenteditable paste (no
+  // interception needed).
+  //
+  // HTML is checked before files deliberately: Excel (and Word, Sheets,
+  // ...) commonly put BOTH a text/html table AND a bitmap image of the
+  // same selection on the clipboard. Checking files first would silently
+  // upload that image and never look at the table — exactly what a user
+  // pasting a spreadsheet range into the editor doesn't want.
   window.addEventListener('paste', (ev) => {
     const editor = document.getElementById('editor');
-    const hasFiles = ev.clipboardData && ev.clipboardData.files && ev.clipboardData.files.length;
+    const editorFocused = document.activeElement === editor;
+    const hasHtml = editorFocused && ev.clipboardData && ev.clipboardData.types
+      && Array.prototype.includes.call(ev.clipboardData.types, 'text/html');
 
+    if (hasHtml) {
+      const raw = ev.clipboardData.getData('text/html');
+      const clean = window.Sebinta && window.Sebinta.sanitizePadHtml ? window.Sebinta.sanitizePadHtml(raw) : '';
+      if (clean) {
+        ev.preventDefault();
+        insertHtmlAtCaret(editor, clean);
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+      // Nothing safe survived sanitization (e.g. the clipboard's HTML was
+      // just an <img> wrapper, no table/text) — fall through below, so an
+      // accompanying image file (or plain text) still gets handled.
+    }
+
+    const hasFiles = ev.clipboardData && ev.clipboardData.files && ev.clipboardData.files.length;
     if (hasFiles) {
       ev.preventDefault();
       handleFiles(ev.clipboardData.files);
       return;
-    }
-
-    const editorFocused = document.activeElement === editor;
-    const hasHtml = editorFocused && ev.clipboardData && ev.clipboardData.types
-      && Array.prototype.includes.call(ev.clipboardData.types, 'text/html');
-    if (hasHtml) {
-      const raw = ev.clipboardData.getData('text/html');
-      const clean = window.Sebinta && window.Sebinta.sanitizePadHtml ? window.Sebinta.sanitizePadHtml(raw) : '';
-      if (!clean) return; // nothing safe survived sanitization — fall back to native plain-text paste
-      ev.preventDefault();
-      insertHtmlAtCaret(editor, clean);
-      editor.dispatchEvent(new Event('input', { bubbles: true }));
     }
     // else: plain-text-only clipboard with the editor focused — let the
     // browser's native contenteditable paste happen, same as before.
