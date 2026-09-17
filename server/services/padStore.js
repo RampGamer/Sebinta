@@ -43,16 +43,16 @@ function getOrCreatePad(padId) {
   return getPad(padId);
 }
 
-function updateContent(padId, content) {
+function updateContent(padId, content, contentFormat) {
   const now = Date.now();
-  db.prepare('UPDATE pads SET content = ?, version = version + 1, updated_at = ? WHERE id = ?')
-    .run(content, now, padId);
+  db.prepare('UPDATE pads SET content = ?, content_format = ?, version = version + 1, updated_at = ? WHERE id = ?')
+    .run(content, contentFormat, now, padId);
   return getPad(padId);
 }
 
 function clearPad(padId) {
   const now = Date.now();
-  db.prepare('UPDATE pads SET content = \'\', version = version + 1, updated_at = ? WHERE id = ?')
+  db.prepare('UPDATE pads SET content = \'\', content_format = \'text\', version = version + 1, updated_at = ? WHERE id = ?')
     .run(now, padId);
   const files = db.prepare('SELECT * FROM files WHERE pad_id = ?').all(padId);
   db.prepare('DELETE FROM files WHERE pad_id = ?').run(padId);

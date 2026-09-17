@@ -39,12 +39,13 @@ func normalizePadID(raw string) string {
 }
 
 type Pad struct {
-	ID           string
-	Content      string
-	PasswordHash sql.NullString
-	Version      int64
-	CreatedAt    int64
-	UpdatedAt    int64
+	ID            string
+	Content       string
+	ContentFormat string
+	PasswordHash  sql.NullString
+	Version       int64
+	CreatedAt     int64
+	UpdatedAt     int64
 }
 
 type File struct {
@@ -62,14 +63,14 @@ func nowMs() int64 { return time.Now().UnixMilli() }
 
 func scanPad(row interface{ Scan(...any) error }) (*Pad, error) {
 	var p Pad
-	if err := row.Scan(&p.ID, &p.Content, &p.PasswordHash, &p.Version, &p.CreatedAt, &p.UpdatedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.Content, &p.ContentFormat, &p.PasswordHash, &p.Version, &p.CreatedAt, &p.UpdatedAt); err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
 func getPad(db *sql.DB, padID string) (*Pad, error) {
-	row := db.QueryRow(`SELECT id, content, password_hash, version, created_at, updated_at FROM pads WHERE id = ?`, padID)
+	row := db.QueryRow(`SELECT id, content, content_format, password_hash, version, created_at, updated_at FROM pads WHERE id = ?`, padID)
 	p, err := scanPad(row)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -92,9 +93,9 @@ func getOrCreatePad(db *sql.DB, padID string) (*Pad, error) {
 	return getPad(db, padID)
 }
 
-func updateContent(db *sql.DB, padID, content string) (*Pad, error) {
+func updateContent(db *sql.DB, padID, content, contentFormat string) (*Pad, error) {
 	now := nowMs()
-	if _, err := db.Exec(`UPDATE pads SET content = ?, version = version + 1, updated_at = ? WHERE id = ?`, content, now, padID); err != nil {
+	if _, err := db.Exec(`UPDATE pads SET content = ?, content_format = ?, version = version + 1, updated_at = ? WHERE id = ?`, content, contentFormat, now, padID); err != nil {
 		return nil, err
 	}
 	return getPad(db, padID)
@@ -102,7 +103,7 @@ func updateContent(db *sql.DB, padID, content string) (*Pad, error) {
 
 func clearPad(db *sql.DB, padID string) ([]*File, error) {
 	now := nowMs()
-	if _, err := db.Exec(`UPDATE pads SET content = '', version = version + 1, updated_at = ? WHERE id = ?`, now, padID); err != nil {
+	if _, err := db.Exec(`UPDATE pads SET content = '', content_format = 'text', version = version + 1, updated_at = ? WHERE id = ?`, now, padID); err != nil {
 		return nil, err
 	}
 	files, err := listFiles(db, padID)

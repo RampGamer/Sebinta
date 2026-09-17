@@ -304,14 +304,65 @@
   });
 
   // --- paste (Ctrl+V) ---
+  // Three-way branch: files (screenshots etc, handled anywhere on the page,
+  // not just the editor — matches the existing "paste" hint next to the
+  // upload button) > an HTML table/rich content pasted into the focused
+  // editor (sanitized, then inserted as real DOM — see insertHtmlAtCaret)
+  // > plain text, which is left to the browser's native contenteditable
+  // paste (no interception needed).
   window.addEventListener('paste', (ev) => {
     const editor = document.getElementById('editor');
-    if (document.activeElement === editor && (!ev.clipboardData || !ev.clipboardData.files.length)) {
-      return; // normal text paste into the editor
-    }
-    if (ev.clipboardData && ev.clipboardData.files && ev.clipboardData.files.length) {
+    const hasFiles = ev.clipboardData && ev.clipboardData.files && ev.clipboardData.files.length;
+
+    if (hasFiles) {
       ev.preventDefault();
       handleFiles(ev.clipboardData.files);
+      return;
     }
+
+    const editorFocused = document.activeElement === editor;
+    const hasHtml = editorFocused && ev.clipboardData && ev.clipboardData.types
+      && Array.prototype.includes.call(ev.clipboardData.types, 'text/html');
+    if (hasHtml) {
+      const raw = ev.clipboardData.getData('text/html');
+      const clean = window.Sebinta && window.Sebinta.sanitizePadHtml ? window.Sebinta.sanitizePadHtml(raw) : '';
+      if (!clean) return; // nothing safe survived sanitization — fall back to native plain-text paste
+      ev.preventDefault();
+      insertHtmlAtCaret(editor, clean);
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    // else: plain-text-only clipboard with the editor focused — let the
+    // browser's native contenteditable paste happen, same as before.
   });
+
+  // Inserts a sanitized HTML fragment at the current caret/selection
+  // inside `editor`, then moves the caret to just after it. Deliberately
+  // not document.execCommand('insertHTML', ...): it's deprecated and
+  // inconsistent across browsers, and this needs precise control over the
+  // resulting DOM (no browser-injected wrapper spans) so that a later
+  // native copy of the pasted table stays clean HTML another Confluence/
+  // Notion page can read back in.
+  function insertHtmlAtCaret(editor, html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const fragment = template.content;
+    const lastNode = fragment.lastChild;
+    if (!lastNode) return;
+
+    const selection = window.getSelection();
+    let range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    if (!range || !editor.contains(range.commonAncestorContainer)) {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+    range.deleteContents();
+    range.insertNode(fragment);
+
+    const after = document.createRange();
+    after.setStartAfter(lastNode);
+    after.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(after);
+  }
 })();

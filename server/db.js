@@ -38,4 +38,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);
 `);
 
+// No migration framework here (see comment style above) — this is a plain
+// guarded ALTER, run on every boot, for pads created before content_format
+// existed. 'text' is the safe default: the client HTML-escapes it instead
+// of trusting it as markup (see public/js/app.js refresh()).
+const hasContentFormat = db.prepare("SELECT 1 FROM pragma_table_info('pads') WHERE name = 'content_format'").get();
+if (!hasContentFormat) {
+  db.exec("ALTER TABLE pads ADD COLUMN content_format TEXT NOT NULL DEFAULT 'text'");
+}
+
 module.exports = db;

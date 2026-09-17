@@ -58,5 +58,38 @@ func openDB(cfg *Config) *sql.DB {
 	if _, err := db.Exec(schema); err != nil {
 		log.Fatalf("could not create the schema: %v", err)
 	}
+	if err := migrateContentFormat(db); err != nil {
+		log.Fatalf("could not migrate the schema: %v", err)
+	}
 	return db
+}
+
+// migrateContentFormat mirrors server/db.js: no migration framework, just a
+// guarded ALTER run on every boot, for pads created before content_format
+// existed. 'text' is the safe default: the client HTML-escapes it instead
+// of trusting it as markup (see standalone/public/js/app.js refresh()).
+func migrateContentFormat(db *sql.DB) error {
+	rows, err := db.Query(`SELECT name FROM pragma_table_info('pads')`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	found := false
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return err
+		}
+		if name == "content_format" {
+			found = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if found {
+		return nil
+	}
+	_, err = db.Exec(`ALTER TABLE pads ADD COLUMN content_format TEXT NOT NULL DEFAULT 'text'`)
+	return err
 }

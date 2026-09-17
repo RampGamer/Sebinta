@@ -4,6 +4,7 @@ const express = require('express');
 const config = require('../config');
 const auth = require('../auth');
 const store = require('../services/padStore');
+const { sanitizePadHtml } = require('../services/sanitizeHtml');
 const {
   padWriteLimiter,
   padPasswordLimiter,
@@ -52,6 +53,7 @@ router.get('/', (req, res) => {
     hasPassword,
     locked: false,
     content: pad.content,
+    contentFormat: pad.content_format,
     version: pad.version,
     updatedAt: pad.updated_at,
     files,
@@ -77,7 +79,14 @@ router.put('/', padWriteLimiter, auth.csrfProtection, (req, res) => {
   if (content.length > config.maxPadContentChars) {
     return res.status(413).json({ error: 'content_too_large' });
   }
-  const updated = store.updateContent(req.padId, content);
+  const contentFormat = typeof req.body?.content_format === 'string' && req.body.content_format
+    ? req.body.content_format
+    : 'text';
+  if (contentFormat !== 'text' && contentFormat !== 'html') {
+    return res.status(400).json({ error: 'invalid_content_format' });
+  }
+  const sanitized = contentFormat === 'html' ? sanitizePadHtml(content) : content;
+  const updated = store.updateContent(req.padId, sanitized, contentFormat);
   ws.broadcastPadChanged(req.padId, { version: updated.version });
   res.json({ ok: true, version: updated.version });
 });

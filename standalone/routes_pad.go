@@ -50,7 +50,8 @@ func handlePadGet(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http.Reque
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"id": padID, "hasPassword": hasPassword, "locked": false,
-			"content": pad.Content, "version": pad.Version, "updatedAt": pad.UpdatedAt, "files": fj,
+			"content": pad.Content, "contentFormat": pad.ContentFormat,
+			"version": pad.Version, "updatedAt": pad.UpdatedAt, "files": fj,
 		})
 	}
 }
@@ -71,7 +72,8 @@ func handlePadPoll(db *sql.DB) func(http.ResponseWriter, *http.Request, string) 
 }
 
 type putContentBody struct {
-	Content string `json:"content"`
+	Content       string `json:"content"`
+	ContentFormat string `json:"content_format"`
 }
 
 func handlePadPut(cfg *Config, db *sql.DB, hub *wsHub) func(http.ResponseWriter, *http.Request, string) {
@@ -97,7 +99,19 @@ func handlePadPut(cfg *Config, db *sql.DB, hub *wsHub) func(http.ResponseWriter,
 			writeJSONError(w, http.StatusRequestEntityTooLarge, "content_too_large")
 			return
 		}
-		updated, err := updateContent(db, padID, body.Content)
+		contentFormat := body.ContentFormat
+		if contentFormat == "" {
+			contentFormat = "text"
+		}
+		if contentFormat != "text" && contentFormat != "html" {
+			writeJSONError(w, http.StatusBadRequest, "invalid_content_format")
+			return
+		}
+		content := body.Content
+		if contentFormat == "html" {
+			content = sanitizeHTML(content)
+		}
+		updated, err := updateContent(db, padID, content, contentFormat)
 		if err != nil {
 			writeJSONError(w, http.StatusInternalServerError, "internal_error")
 			return

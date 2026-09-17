@@ -205,7 +205,6 @@ main {
   width: 100%;
   min-height: 40vh;
   flex: 1;
-  resize: none;
   background: var(--bg);
   border: none;
   border-radius: 0;
@@ -214,8 +213,22 @@ main {
   font-size: 1rem;
   line-height: 1.5;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-y: auto;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 #editor:focus { outline: none; }
+#editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+/* Pasted tables (Confluence/Notion/Excel) render as a real grid even when
+   the source HTML carried no borders of its own. */
+#editor table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
+#editor td, #editor th { border: 1px solid var(--border); padding: 0.4rem 0.6rem; }
+#editor th { background: var(--bg-panel); font-weight: 600; }
 
 section.files {
   padding: 1rem 2rem 1.4rem;
@@ -763,6 +776,9 @@ body.theme-notebook #editor {
   font-size: 1.5rem;
   line-height: 34px;
   padding-left: calc(2.15rem + 1rem);
+}
+body.theme-notebook #editor table {
+  line-height: normal;
 }
 
 body.theme-notebook section.files {

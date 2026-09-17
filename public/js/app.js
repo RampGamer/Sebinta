@@ -99,6 +99,83 @@
   const lightboxName = document.getElementById('lightbox-name');
   const lightboxDownload = document.getElementById('lightbox-download');
 
+  // --- pad HTML rendering/sanitization ---
+  // Client-side defense-in-depth only — the real security boundary is
+  // server-side (server/services/sanitizeHtml.js sanitizes every PUT
+  // before storing/rebroadcasting to every other live viewer). Canonical
+  // allowlist mirrored in exactly that file, standalone/sanitize.go, and
+  // here (shared with upload.js via window.Sebinta.sanitizePadHtml).
+  const PAD_HTML_ALLOWED_TAGS = [
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th',
+    'p', 'br', 'div', 'span',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'strong', 'b', 'em', 'i', 'u', 's',
+    'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre',
+  ];
+  const PAD_HTML_ALLOWED_ATTR = ['colspan', 'rowspan', 'href', 'style'];
+  // Whitelist-by-construction: url(), expression(), javascript: etc. can
+  // never match these, so they're dropped along with everything else.
+  const PAD_STYLE_ALLOWLIST = {
+    'text-align': /^(?:left|right|center|justify)$/,
+    'vertical-align': /^(?:top|middle|bottom|baseline)$/,
+    'background-color': /^(?:#[0-9a-fA-F]{3,8}|rgba?\([\d\s,.%]+\)|[a-zA-Z]{3,20})$/,
+    width: /^\d{1,4}(?:px|%)$/,
+  };
+
+  if (window.DOMPurify) {
+    // DOMPurify has no built-in per-declaration style filtering — this
+    // hook rebuilds the style attribute keeping only the 4 allowed
+    // declarations, each value-checked against PAD_STYLE_ALLOWLIST.
+    DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+      if (data.attrName !== 'style') return;
+      const kept = [];
+      for (const decl of data.attrValue.split(';')) {
+        const idx = decl.indexOf(':');
+        if (idx === -1) continue;
+        const prop = decl.slice(0, idx).trim();
+        const val = decl.slice(idx + 1).trim();
+        const re = PAD_STYLE_ALLOWLIST[prop];
+        if (re && re.test(val)) kept.push(`${prop}: ${val}`);
+      }
+      data.attrValue = kept.join('; ');
+    });
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+      if (node.tagName === 'A') {
+        node.setAttribute('rel', 'noopener noreferrer');
+        node.setAttribute('target', '_blank');
+      }
+    });
+  }
+
+  function sanitizePadHtml(html) {
+    // Fail closed: if the vendored library somehow didn't load, don't
+    // trust unsanitized HTML into the DOM.
+    if (!window.DOMPurify) return '';
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: PAD_HTML_ALLOWED_TAGS,
+      ALLOWED_ATTR: PAD_HTML_ALLOWED_ATTR,
+      ALLOWED_URI_REGEXP: /^(?:https?:|(?!.*:))/i,
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Pads created before content_format existed (or never edited in the
+  // rich editor yet) have plain-text content — escape it and turn
+  // newlines into <br> instead of trusting it as markup, so old notes
+  // with literal <, >, & display correctly instead of being misparsed.
+  function renderPadContent(content, format) {
+    if (format === 'html') return sanitizePadHtml(content || '');
+    return escapeHtml(content || '').replace(/\n/g, '<br>');
+  }
+
   let state = { version: 0, hasPassword: false, locked: false };
 
   // Bumped every time this tab locally confirms it holds the right
@@ -224,7 +301,7 @@
       const editorFocused = document.activeElement === editor;
       const recentlyEdited = Date.now() - lastLocalEditAt < 4000;
       if (!editorFocused && !recentlyEdited) {
-        editor.value = data.content;
+        editor.innerHTML = renderPadContent(data.content, data.contentFormat);
       }
       state.version = data.version;
     }
@@ -338,12 +415,12 @@
   });
 
   async function saveContent() {
-    const content = editor.value;
+    const content = editor.innerHTML;
     try {
       const res = await api('/api/pad', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, content_format: 'html' }),
       });
       if (!res.ok) {
         setStatus('offline', 'save error');
@@ -364,7 +441,7 @@
     const res = await api('/api/pad', { method: 'DELETE' });
     modalClear.classList.remove('active');
     if (res.ok) {
-      editor.value = '';
+      editor.innerHTML = '';
       fileGrid.replaceChildren();
       toast('Pad cleared.', 'success');
     } else {
@@ -532,6 +609,7 @@
     toast,
     refresh,
     api,
+    sanitizePadHtml,
   };
 
   refresh().then(() => {
