@@ -8,4 +8,7 @@ try {
   if (localStorage.getItem('sebinta-theme') === 'notebook') {
     document.body.classList.add('theme-notebook');
   }
+  if (localStorage.getItem('sebinta-color-mode') === 'light') {
+    document.body.classList.add('theme-light');
+  }
 } catch (e) { /* localStorage unavailable (private mode, etc.) — ignore */ }

@@ -220,7 +220,23 @@
   const brandLogo = document.getElementById('btn-brand-logo');
   brandLogo.addEventListener('click', () => {
     const next = document.body.classList.toggle('theme-notebook') ? 'notebook' : 'sober';
-    try { localStorage.setItem('sebinta-theme', next); } catch (e) { /* ignora (modo privado, etc.) */ }
+    try { localStorage.setItem('sebinta-theme', next); } catch (e) { /* ignore (private mode, etc.) */ }
+  });
+
+  // Light/dark toggle — swaps only the color variables (see body.theme-light
+  // in style.css), independent of the notebook easter egg above. Saved per
+  // browser; theme-init.js applies it before first paint to avoid a flash.
+  const btnColorMode = document.getElementById('btn-color-mode');
+  function updateColorModeButton() {
+    const isLight = document.body.classList.contains('theme-light');
+    btnColorMode.textContent = isLight ? '☀️ Light' : '🌙 Dark';
+    btnColorMode.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+  }
+  updateColorModeButton();
+  btnColorMode.addEventListener('click', () => {
+    const next = document.body.classList.toggle('theme-light') ? 'light' : 'dark';
+    try { localStorage.setItem('sebinta-color-mode', next); } catch (e) { /* ignore (private mode, etc.) */ }
+    updateColorModeButton();
   });
 
   // --- utilidades ---
