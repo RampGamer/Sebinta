@@ -134,8 +134,11 @@ func verifyPadPassword(password, hash string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
-func padHash(padID string) string {
-	sum := sha256.Sum256([]byte(padID))
+// The unlock token is bound to the pad's *current* password hash, not just
+// its id: changing (or removing) the password changes this value, so every
+// previously-issued fp_unlocked entry stops matching and access is revoked.
+func padHash(padID, passwordHash string) string {
+	sum := sha256.Sum256([]byte(padID + "|" + passwordHash))
 	return hex.EncodeToString(sum[:])[:16]
 }
 
@@ -167,12 +170,12 @@ func isPadUnlocked(cfg *Config, r *http.Request, padID string, pad *Pad) bool {
 	if pad == nil || !pad.PasswordHash.Valid || pad.PasswordHash.String == "" {
 		return true
 	}
-	return getUnlockedSet(cfg, r)[padHash(padID)]
+	return getUnlockedSet(cfg, r)[padHash(padID, pad.PasswordHash.String)]
 }
 
-func markPadUnlocked(cfg *Config, w http.ResponseWriter, r *http.Request, padID string) {
+func markPadUnlocked(cfg *Config, w http.ResponseWriter, r *http.Request, padID, passwordHash string) {
 	set := getUnlockedSet(cfg, r)
-	set[padHash(padID)] = true
+	set[padHash(padID, passwordHash)] = true
 	arr := make([]string, 0, len(set))
 	for h := range set {
 		arr = append(arr, h)

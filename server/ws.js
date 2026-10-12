@@ -16,7 +16,7 @@ const cookie = require('cookie');
 const cookieSignature = require('cookie-signature');
 const config = require('./config');
 const { normalizePadId, getPad } = require('./services/padStore');
-const { isPadUnlocked, isSiteAuthed: _unused } = require('./auth');
+const { padHash } = require('./auth');
 
 const rooms = new Map(); // padId -> Set<WebSocket>
 
@@ -47,9 +47,7 @@ function isRequestAuthorized(req, padId) {
       const arr = JSON.parse(signed.fp_unlocked || '[]');
       if (Array.isArray(arr)) unlockedSet = new Set(arr);
     } catch (_) { /* cookie ausente/corrompido */ }
-    const crypto = require('crypto');
-    const hash = crypto.createHash('sha256').update(padId).digest('hex').slice(0, 16);
-    if (!unlockedSet.has(hash)) return false;
+    if (!unlockedSet.has(padHash(padId, pad.password_hash))) return false;
   }
   return true;
 }
@@ -84,6 +82,7 @@ function attach(server) {
       ws.isAlive = true;
       if (!rooms.has(padId)) rooms.set(padId, new Set());
       rooms.get(padId).add(ws);
+      broadcastPresence(padId);
 
       ws.on('pong', () => { ws.isAlive = true; });
       ws.on('close', () => {
@@ -91,6 +90,7 @@ function attach(server) {
         if (room) {
           room.delete(ws);
           if (room.size === 0) rooms.delete(padId);
+          else broadcastPresence(padId);
         }
       });
       ws.on('error', () => ws.terminate());
@@ -120,6 +120,21 @@ function broadcastPadChanged(padId, extra = {}) {
   const room = rooms.get(padId);
   if (!room || room.size === 0) return;
   const payload = JSON.stringify({ type: 'changed', ...extra });
+  for (const ws of room) {
+    if (ws.readyState === ws.OPEN) {
+      ws.send(payload);
+    }
+  }
+}
+
+/**
+ * Tells every client on a pad how many connections are currently open on it
+ * (itself included) — the client shows a "viewing" indicator when count > 1.
+ */
+function broadcastPresence(padId) {
+  const room = rooms.get(padId);
+  if (!room || room.size === 0) return;
+  const payload = JSON.stringify({ type: 'presence', count: room.size });
   for (const ws of room) {
     if (ws.readyState === ws.OPEN) {
       ws.send(payload);

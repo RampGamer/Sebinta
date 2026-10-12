@@ -129,7 +129,7 @@ router.post('/password', padPasswordLimiter, auth.csrfProtection, (req, res) => 
   }
   const hash = auth.hashPadPassword(password);
   store.setPadPassword(req.padId, hash);
-  auth.markPadUnlocked(req, res, req.padId);
+  auth.markPadUnlocked(req, res, req.padId, hash);
   res.json({ ok: true, hasPassword: true });
   // Broadcast only after the response (which already carries the unlock
   // cookie) has been sent — never before: whoever set the password already
@@ -156,7 +156,7 @@ router.post('/unlock', padPasswordLimiter, auth.csrfProtection, (req, res) => {
     return res.status(403).json({ error: 'invalid_password' });
   }
   recordPadUnlockSuccess(req);
-  auth.markPadUnlocked(req, res, req.padId);
+  auth.markPadUnlocked(req, res, req.padId, pad.password_hash);
   res.json({ ok: true });
 });
 

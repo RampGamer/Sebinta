@@ -252,10 +252,23 @@ router.get('/:fileId/preview', requireUnlockedPad, async (req, res) => {
   const stat = fs.statSync(filePath);
   const range = req.headers.range;
   if (range) {
-    const match = /bytes=(\d*)-(\d*)/.exec(range);
-    let start = match && match[1] ? parseInt(match[1], 10) : 0;
-    let end = match && match[2] ? parseInt(match[2], 10) : stat.size - 1;
-    if (Number.isNaN(start) || Number.isNaN(end) || start > end || end >= stat.size) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+    let start;
+    let end;
+    if (match && match[1] === '' && match[2] !== '') {
+      // Suffix range "bytes=-N": the LAST N bytes of the file.
+      const suffix = parseInt(match[2], 10);
+      start = Math.max(0, stat.size - suffix);
+      end = stat.size - 1;
+    } else if (match && match[1] !== '') {
+      // "bytes=N-" (open-ended) or "bytes=N-M"; end clamped to the last byte.
+      start = parseInt(match[1], 10);
+      end = match[2] !== '' ? Math.min(parseInt(match[2], 10), stat.size - 1) : stat.size - 1;
+    } else {
+      start = NaN;
+      end = NaN;
+    }
+    if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= stat.size) {
       res.setHeader('Content-Range', `bytes */${stat.size}`);
       return res.status(416).end();
     }

@@ -114,7 +114,7 @@ func isWSRequestAuthorized(cfg *Config, db *sql.DB, r *http.Request, padID strin
 		return false
 	}
 	if pad != nil && pad.PasswordHash.Valid && pad.PasswordHash.String != "" {
-		if !getUnlockedSet(cfg, r)[padHash(padID)] {
+		if !getUnlockedSet(cfg, r)[padHash(padID, pad.PasswordHash.String)] {
 			return false
 		}
 	}

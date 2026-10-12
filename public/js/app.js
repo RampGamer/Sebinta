@@ -92,6 +92,7 @@
 
   const modalClear = document.getElementById('modal-clear');
   const protectedBadge = document.getElementById('protected-badge');
+  const viewerBadge = document.getElementById('viewer-badge');
   const btnPassword = document.getElementById('btn-password');
 
   const lightbox = document.getElementById('lightbox');
@@ -262,6 +263,15 @@
   function setStatus(kind, text) {
     statusDot.className = 'status-dot ' + kind;
     statusText.textContent = text;
+  }
+
+  // count includes this tab itself, so the badge only shows (with the number
+  // of people) once someone else also has the pad open.
+  function updateViewerBadge(count) {
+    const n = Number(count);
+    const show = Number.isFinite(n) && n > 1;
+    viewerBadge.hidden = !show;
+    if (show) viewerBadge.textContent = `👁 ${n} viewing`;
   }
 
   function formatSize(bytes) {
@@ -590,12 +600,17 @@
       try {
         const msg = JSON.parse(ev.data);
         if (msg.type === 'changed') refresh();
+        else if (msg.type === 'presence') updateViewerBadge(msg.count);
       } catch (e) { /* ignores invalid messages */ }
     });
     ws.addEventListener('close', () => {
       clearTimeout(connectTimeout);
       wsFailCount++;
       setStatus('offline', 'live connection lost');
+      // Presence is WebSocket-only (no polling equivalent); once disconnected
+      // we no longer know who else is here, so hide it rather than show a
+      // stale count.
+      updateViewerBadge(0);
       startPolling();
       // Tries to reconnect with backoff, up to 30s.
       const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(wsFailCount, 5)));

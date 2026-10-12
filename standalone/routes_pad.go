@@ -199,7 +199,7 @@ func handlePadSetPassword(cfg *Config, db *sql.DB, hub *wsHub) func(http.Respons
 			writeJSONError(w, http.StatusInternalServerError, "internal_error")
 			return
 		}
-		markPadUnlocked(cfg, w, r, padID)
+		markPadUnlocked(cfg, w, r, padID, hash)
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "hasPassword": true})
 		// Broadcast only after the response (which carries the unlock cookie)
 		// has been written — never before: the person who just set the
@@ -246,7 +246,7 @@ func handlePadUnlock(cfg *Config, db *sql.DB) func(http.ResponseWriter, *http.Re
 			return
 		}
 		padUnlockAttemptLimiter.recordSuccess(attemptKey)
-		markPadUnlocked(cfg, w, r, padID)
+		markPadUnlocked(cfg, w, r, padID, pad.PasswordHash.String)
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 	}
 }
