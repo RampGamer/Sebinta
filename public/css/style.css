@@ -206,6 +206,17 @@ header.topbar {
 }
 .protected-badge[hidden] { display: none; }
 
+.viewer-badge {
+  font-size: 0.75rem;
+  color: var(--accent, #5b8cff);
+  background: rgba(91, 140, 255, 0.12);
+  border: 1px solid rgba(91, 140, 255, 0.4);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+}
+.viewer-badge[hidden] { display: none; }
+
 .topbar .actions { grid-column: 3; justify-self: end; display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 /* --- Main layout --- */

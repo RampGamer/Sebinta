@@ -95,8 +95,11 @@ function verifyPadPassword(password, hash) {
   }
 }
 
-function padHash(padId) {
-  return crypto.createHash('sha256').update(padId).digest('hex').slice(0, 16);
+// The unlock token is bound to the pad's *current* password hash, not just
+// its id: changing (or removing) the password changes this value, so every
+// previously-issued fp_unlocked entry stops matching and access is revoked.
+function padHash(padId, passwordHash = '') {
+  return crypto.createHash('sha256').update(`${padId}|${passwordHash || ''}`).digest('hex').slice(0, 16);
 }
 
 function getUnlockedSet(req) {
@@ -111,12 +114,12 @@ function getUnlockedSet(req) {
 
 function isPadUnlocked(req, padId, pad) {
   if (!pad || !pad.password_hash) return true;
-  return getUnlockedSet(req).has(padHash(padId));
+  return getUnlockedSet(req).has(padHash(padId, pad.password_hash));
 }
 
-function markPadUnlocked(req, res, padId) {
+function markPadUnlocked(req, res, padId, passwordHash) {
   const set = getUnlockedSet(req);
-  set.add(padHash(padId));
+  set.add(padHash(padId, passwordHash));
   // Defensive cap so the cookie doesn't grow unbounded.
   const arr = Array.from(set).slice(-200);
   res.cookie(UNLOCKED_COOKIE, JSON.stringify(arr), { ...cookieBaseOpts, signed: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
@@ -134,6 +137,7 @@ module.exports = {
   siteAuthApiGate,
   ensureCsrfCookie,
   csrfProtection,
+  padHash,
   hashPadPassword,
   verifyPadPassword,
   isPadUnlocked,

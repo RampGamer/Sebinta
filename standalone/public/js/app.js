@@ -266,9 +266,13 @@
     statusText.textContent = text;
   }
 
-  // count includes this tab itself, so the badge only shows for count > 1.
+  // count includes this tab itself, so the badge only shows (with the number
+  // of people) once someone else also has the pad open.
   function updateViewerBadge(count) {
-    viewerBadge.hidden = !(typeof count === 'number' && count > 1);
+    const n = Number(count);
+    const show = Number.isFinite(n) && n > 1;
+    viewerBadge.hidden = !show;
+    if (show) viewerBadge.textContent = `👁 ${n} viewing`;
   }
 
   function formatSize(bytes) {
