@@ -32,6 +32,7 @@
     fetch('https://api.github.com/repos/RampGamer/Sebinta/releases/latest')
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((release) => {
+        checkForUpdate(release);
         if (releaseTag && release.tag_name) {
           releaseTag.textContent = ''; // textContent: never innerHTML, prevents XSS
           releaseTag.append('Latest version: ');
@@ -54,6 +55,37 @@
       .catch(() => {
         if (releaseTag) releaseTag.textContent = 'See all versions on GitHub.';
       });
+  }
+
+  // "v1.8.18" -> [1, 8, 18]; null for anything else (e.g. "dev" builds).
+  function parseVersion(tag) {
+    const m = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(tag || '').trim());
+    return m ? m.slice(1).map(Number) : null;
+  }
+
+  function isOlder(a, b) {
+    for (let i = 0; i < 3; i++) {
+      if (a[i] !== b[i]) return a[i] < b[i];
+    }
+    return false;
+  }
+
+  // Shows a notice on the landing page when this server is behind the
+  // latest GitHub release. Stays hidden if either version is unknown.
+  function checkForUpdate(release) {
+    const latest = parseVersion(release.tag_name);
+    if (!latest) return;
+    fetch('/api/version')
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then(({ version }) => {
+        const current = parseVersion(version);
+        if (!current || !isOlder(current, latest)) return;
+        document.getElementById('update-latest').textContent = release.tag_name;
+        document.getElementById('update-current').textContent = version;
+        if (release.html_url) document.getElementById('update-link').href = release.html_url;
+        document.getElementById('update-notice').hidden = false;
+      })
+      .catch(() => { /* no notice — not worth an error on the landing page */ });
   }
 
   // Root "/" with no pad name: there's nothing valid to load (the server
@@ -80,6 +112,7 @@
   const statusDot = document.getElementById('status-dot');
   const statusText = document.getElementById('status-text');
   const fileGrid = document.getElementById('file-grid');
+  const filesCount = document.getElementById('files-count');
   const toastContainer = document.getElementById('toast-container');
 
   const viewerBadge = document.getElementById('viewer-badge');
@@ -229,7 +262,8 @@
   const btnColorMode = document.getElementById('btn-color-mode');
   function updateColorModeButton() {
     const isLight = document.body.classList.contains('theme-light');
-    btnColorMode.textContent = isLight ? '☀️ Light' : '🌙 Dark';
+    // Labels the mode a click switches TO, not the current one.
+    btnColorMode.textContent = isLight ? '🌙 Dark' : '☀️ Light';
     btnColorMode.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
   }
   updateColorModeButton();
@@ -238,6 +272,27 @@
     try { localStorage.setItem('sebinta-color-mode', next); } catch (e) { /* ignore (private mode, etc.) */ }
     updateColorModeButton();
   });
+
+  // Collapsible files panel — hides the grid (uploads in progress stay
+  // visible) so the editor gets the full height. Saved per browser;
+  // theme-init.js applies it before first paint.
+  const btnFilesToggle = document.getElementById('btn-files-toggle');
+  function updateFilesToggle() {
+    const collapsed = document.body.classList.contains('files-collapsed');
+    btnFilesToggle.setAttribute('aria-expanded', String(!collapsed));
+    btnFilesToggle.title = collapsed ? 'Show files' : 'Hide files';
+  }
+  updateFilesToggle();
+  btnFilesToggle.addEventListener('click', () => {
+    const collapsed = document.body.classList.toggle('files-collapsed');
+    try { localStorage.setItem('sebinta-files-collapsed', collapsed ? '1' : '0'); } catch (e) { /* ignore (private mode, etc.) */ }
+    updateFilesToggle();
+  });
+
+  function updateFilesCount(n) {
+    filesCount.textContent = String(n);
+    filesCount.hidden = n === 0;
+  }
 
   // --- utilidades ---
   function getCookie(name) {
@@ -343,6 +398,24 @@
     for (const file of files) {
       fileGrid.appendChild(buildFileCard(file));
     }
+    updateFilesCount(files.length);
+  }
+
+  // Stroke icons for the file card buttons — SVG instead of emoji so they
+  // look the same on every OS.
+  const ICON_PATHS = {
+    download: 'M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14',
+    trash: 'M4 7h16M9 7V4.5h6V7m-8.5 0 1 12.5h9L17.5 7M10 11v5m4-5v5',
+  };
+  function icon(name) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('ic');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', ICON_PATHS[name]);
+    svg.appendChild(path);
+    return svg;
   }
 
   function buildFileCard(file) {
@@ -391,15 +464,20 @@
     row.className = 'row';
 
     const downloadBtn = document.createElement('button');
-    downloadBtn.textContent = '⬇ Download';
+    downloadBtn.type = 'button';
+    downloadBtn.className = 'file-act download';
+    downloadBtn.append(icon('download'), 'Download');
     downloadBtn.addEventListener('click', () => {
       window.location.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/download`);
     });
     row.appendChild(downloadBtn);
 
     const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = '🗑';
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'file-act delete';
+    deleteBtn.appendChild(icon('trash'));
     deleteBtn.title = 'Delete file';
+    deleteBtn.setAttribute('aria-label', 'Delete file');
     deleteBtn.addEventListener('click', () => deleteFile(file.id));
     row.appendChild(deleteBtn);
 
@@ -478,6 +556,7 @@
     if (res.ok) {
       editor.innerHTML = '';
       fileGrid.replaceChildren();
+      updateFilesCount(0);
       toast('Pad cleared.', 'success');
     } else {
       toast('Could not clear the pad.', 'error');

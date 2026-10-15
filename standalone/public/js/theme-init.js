@@ -11,4 +11,7 @@ try {
   if (localStorage.getItem('sebinta-color-mode') === 'light') {
     document.body.classList.add('theme-light');
   }
+  if (localStorage.getItem('sebinta-files-collapsed') === '1') {
+    document.body.classList.add('files-collapsed');
+  }
 } catch (e) { /* localStorage unavailable (private mode, etc.) — ignore */ }

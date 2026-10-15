@@ -237,8 +237,7 @@ main {
                     without this, a flex item's automatic min-height keeps
                     it (and this whole chain, up through #app-frame) at
                     least as tall as its content, so a big paste pushes the
-                    page taller and drags the footer down mid-content
-                    instead of the editor scrolling internally. */
+                    page taller instead of the editor scrolling internally. */
 }
 /* main {display:flex} (author rule) beats the browser stylesheet's
    [hidden] (UA-only) — without this, "hidden" wasn't hiding anything. */
@@ -246,7 +245,7 @@ main {
 
 #editor {
   width: 100%;
-  min-height: 40vh;
+  min-height: 8rem;
   flex: 1;
   background: var(--bg);
   border: none;
@@ -273,10 +272,17 @@ main {
 #editor td, #editor th { border: 1px solid var(--border); padding: 0.4rem 0.6rem; }
 #editor th { background: var(--bg-panel); font-weight: 600; }
 
+/* Capped at about half the pad's height and scrolls inside, so a pad with
+   lots of files never makes the page taller than the screen. */
 section.files {
-  padding: 1rem 2rem 1.4rem;
+  padding: 0.6rem 2rem 1rem;
   border-top: 1px solid var(--border);
   background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  max-height: 50%;
+  min-height: 0;
+  flex-shrink: 0;
 }
 
 /* --- Dropzone overlay --- */
@@ -296,27 +302,72 @@ section.files {
 .dropzone-overlay.active { display: flex; }
 
 /* --- Files section --- */
-section.files h2 {
-  font-size: 0.95rem;
+.files-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.7rem;
+  flex-shrink: 0;
+}
+body.files-collapsed .files-head { margin-bottom: 0; }
+
+section.files h2 { margin: 0; }
+.files-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: -0.6rem;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
   color: var(--text-dim);
+  font-size: 0.95rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin: 0 0 0.6rem;
 }
+.files-toggle:hover { background: var(--bg-panel-2); color: var(--text); }
+.files-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.files-toggle .chev {
+  width: 16px; height: 16px;
+  fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform 0.2s;
+}
+body.files-collapsed .files-toggle .chev { transform: rotate(-90deg); }
+.files-count {
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  background: var(--bg-panel-2);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.files-count[hidden] { display: none; }
 
 .upload-bar {
   display: flex;
   gap: 0.6rem;
   align-items: center;
-  margin-bottom: 0.9rem;
   flex-wrap: wrap;
 }
+body.files-collapsed .upload-bar span { display: none; }
 
 .file-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 0.8rem;
+  grid-auto-rows: max-content; /* cards keep their natural height and the grid scrolls,
+                                  instead of rows shrinking to fit the capped panel */
+  overflow-y: auto;
+  min-height: 0;
+  padding: 2px; /* room for focus outlines/notebook card tilt at the scroll edge */
 }
+body.files-collapsed .file-grid { display: none; }
 
 .file-card {
   background: var(--bg-panel);
@@ -353,8 +404,38 @@ section.files h2 {
   line-height: 1.25;
 }
 .file-card .size { font-size: 0.72rem; color: var(--text-dim); }
-.file-card .row { display: flex; gap: 0.4rem; margin-top: auto; }
-.file-card .row button { flex: 1; padding: 0.35rem 0.4rem; font-size: 0.78rem; }
+/* Download + delete joined into one bar. The whole button box is the click
+   target: flex-centered content, nothing positioned over it. */
+.file-card .row {
+  display: flex;
+  margin-top: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.file-card .row .file-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 34px;
+  padding: 0 0.5rem;
+  border: none;
+  border-radius: 0;
+  background: var(--bg-panel-2);
+  color: var(--text);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.file-card .row .file-act.download { flex: 1; min-width: 0; }
+.file-card .row .file-act.delete { width: 38px; flex-shrink: 0; border-left: 1px solid var(--border); color: var(--text-dim); }
+.file-card .row .file-act.download:hover { background: var(--accent); color: white; }
+.file-card .row .file-act.delete:hover { background: var(--danger); color: white; }
+.file-card .row .file-act:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.file-card .ic {
+  width: 16px; height: 16px; flex-shrink: 0;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
 
 /* --- Progress list --- */
 .upload-progress-list {
@@ -362,7 +443,12 @@ section.files h2 {
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 0.8rem;
+  flex-shrink: 0;
+  max-height: 30vh;
+  overflow-y: auto;
 }
+.upload-progress-list:empty { display: none; }
+body.files-collapsed .upload-progress-list { margin: 0.6rem 0 0; }
 .upload-progress-item {
   background: var(--bg-panel);
   border: 1px solid var(--border);
@@ -490,22 +576,15 @@ section.files h2 {
 .toast.error { border-color: var(--danger); color: var(--toast-error-text); }
 .toast.success { border-color: var(--success); }
 
-footer.hint {
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  padding: 0.8rem;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
 @media (max-width: 640px) {
   header.topbar { grid-template-columns: 1fr; }
   .brand-logo { grid-column: 1; justify-self: start; }
   .topbar .actions { grid-column: 1; justify-self: start; width: 100%; }
   .pad-field { flex-basis: 100%; }
   #editor { padding: 1rem; }
-  section.files { padding: 0.7rem 1rem 1rem; }
+  section.files { padding: 0.5rem 1rem 0.8rem; max-height: 55%; }
+  /* No dragging on a phone — the hint only pushed the button onto its own line. */
+  .upload-bar span { display: none; }
   .file-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 
@@ -555,6 +634,39 @@ footer.hint {
   align-items: center;
   gap: 2rem;
 }
+
+/* --- "New version available" notice on the landing page --- */
+.update-notice {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-align: left;
+}
+.update-notice[hidden] { display: none; }
+.update-notice svg {
+  width: 22px; height: 22px; flex-shrink: 0;
+  fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.update-notice p { margin: 0; flex: 1; min-width: 0; line-height: 1.4; }
+.update-notice b { color: var(--text); }
+.update-notice a {
+  flex-shrink: 0;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.update-notice a:hover { background: var(--accent-hover); }
 
 /* --- Downloads (Client / Server) on the landing page --- */
 .downloads { width: 100%; }
@@ -900,21 +1012,25 @@ body.theme-notebook .file-card .preview { background: rgba(35, 39, 58, 0.08); }
 body.theme-notebook .file-card .preview .icon { color: var(--nb-ink-soft); }
 body.theme-notebook .file-card .name { font-family: var(--nb-font-hand); font-size: 1.2rem; font-weight: 700; color: var(--nb-ink); }
 body.theme-notebook .file-card .size { font-family: var(--nb-font-hand); font-size: 0.95rem; color: var(--nb-ink-soft); }
-body.theme-notebook .file-card .row button {
-  font-family: var(--nb-font-mono, ui-monospace, monospace);
-  font-size: 0.7rem;
+body.theme-notebook .file-card .row { border: 1px dashed var(--nb-ink-soft); border-radius: 6px; }
+body.theme-notebook .file-card .row .file-act {
+  font-family: var(--nb-font-hand);
+  font-weight: 700;
+  font-size: 1.05rem;
   background: rgba(255,255,255,0.4);
-  border: 1px dashed var(--nb-ink-soft);
   color: var(--nb-ink);
 }
-body.theme-notebook .file-card .row button:hover { background: rgba(255,255,255,0.7); }
+body.theme-notebook .file-card .row .file-act.delete { border-left: 1px dashed var(--nb-ink-soft); color: var(--nb-ink-soft); }
+body.theme-notebook .file-card .row .file-act.download:hover { background: rgba(255,255,255,0.75); color: var(--nb-ink); }
+body.theme-notebook .file-card .row .file-act.delete:hover { background: #a53d33; color: #fff; }
+body.theme-notebook .files-toggle { padding: 0.15rem 0.4rem; margin-left: -0.4rem; font: inherit; color: var(--nb-ink); text-transform: none; letter-spacing: normal; }
+body.theme-notebook .files-toggle:hover { background: rgba(255,255,255,0.4); }
+body.theme-notebook .files-count { font-family: var(--nb-font-hand); font-size: 1rem; background: rgba(255,255,255,0.55); color: var(--nb-ink); border-color: transparent; }
+body.theme-notebook.files-collapsed .files-head { margin-bottom: 0.4rem; }
+body.theme-notebook .file-grid { padding: 0.6rem; }
 
-body.theme-notebook footer.hint {
-  font-family: var(--nb-font-hand);
-  font-size: 1.05rem;
-  color: #8b93a8;
-  padding-top: 1.2rem;
-}
+/* The notebook is its own fixed palette — light/dark doesn't apply. */
+body.theme-notebook #btn-color-mode { display: none; }
 
 @media (max-width: 640px) {
   body.theme-notebook header.topbar,

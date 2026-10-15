@@ -13,6 +13,11 @@
 
 <div class="landing" id="landing" hidden>
   <div class="landing-stack">
+    <div class="update-notice" id="update-notice" role="status" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5m0 0-4.5 4.5M12 5l4.5 4.5M5 19h14"/></svg>
+      <p><b>New version available: <span id="update-latest"></span></b><br>This server is running <span id="update-current"></span>.</p>
+      <a id="update-link" href="https://github.com/RampGamer/Sebinta/releases/latest" target="_blank" rel="noopener">What's new</a>
+    </div>
     <div class="landing-card">
       <img class="landing-logo" src="/favicon.ico" alt="" aria-hidden="true">
       <h1>Sebinta</h1>
@@ -110,7 +115,7 @@
   </button>
 
   <div class="actions">
-    <button id="btn-color-mode" title="Switch to light mode">🌙 Dark</button>
+    <button id="btn-color-mode" title="Switch to light mode">☀️ Light</button>
     <button id="btn-password" title="Protect this pad with a password">🔒 Password</button>
     <button id="btn-clear" class="danger" title="Delete this pad's text and files">🗑 Clear pad</button>
   </div>
@@ -121,7 +126,12 @@
 
   <section class="files">
     <div class="files-head">
-      <h2>Files</h2>
+      <h2>
+        <button type="button" class="files-toggle" id="btn-files-toggle" aria-expanded="true" aria-controls="file-grid" title="Hide files">
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          Files <span class="files-count" id="files-count" hidden></span>
+        </button>
+      </h2>
       <div class="upload-bar">
         <button id="btn-choose-file" class="primary">📎 Choose file</button>
         <input type="file" id="file-input" multiple hidden>
@@ -133,8 +143,6 @@
   </section>
 </main>
 </div>
-
-<footer class="hint">Sebinta — no accounts, no history. What you delete here is gone for good.</footer>
 
 <div class="dropzone-overlay" id="dropzone-overlay">Drop here to upload</div>
 

@@ -104,16 +104,17 @@ them first:
 ```bash
 cd standalone
 ./fetch-cloudflared.sh   # downloads into assets/ (not checked in — ~40-55MB each)
-go build -o sebinta-server .
+go build -ldflags "-X main.version=$(git describe --tags --abbrev=0)" -o sebinta-server .
 ```
 
 ### Cross-compile for all 4 platforms
 
 ```bash
-CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -o dist/sebinta-server-linux-amd64     .
-CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -o dist/sebinta-server-macos-arm64     .
-CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -o dist/sebinta-server-macos-amd64     .
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/sebinta-server-windows-amd64.exe .
+LDFLAGS="-X main.version=$(git describe --tags --abbrev=0)"   # tag the release first
+CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/sebinta-server-linux-amd64     .
+CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/sebinta-server-macos-arm64     .
+CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/sebinta-server-macos-amd64     .
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/sebinta-server-windows-amd64.exe .
 ```
 
 `CGO_ENABLED=0` works for all of them because the SQLite driver

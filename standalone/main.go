@@ -64,6 +64,12 @@ func main() {
 		w.Write(b)
 	})
 
+	// Behind the site password like the rest of the API — no need to tell
+	// anonymous visitors which release this is.
+	mux.HandleFunc("GET /api/version", siteAuthAPIGate(cfg)(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"version": version})
+	}))
+
 	registerAuthRoutes(mux, cfg, db)
 	registerPadRoutes(mux, cfg, db, hub, siteAuthAPIGate(cfg))
 	registerFileRoutes(mux, cfg, db, hub, siteAuthAPIGate(cfg))
@@ -85,7 +91,7 @@ func main() {
 
 	handler := securityHeaders(ensureCsrfMiddleware(cfg, accessLog(mux.ServeHTTP)))
 
-	log.Printf("Sebinta (standalone) running on port %s", cfg.Port)
+	log.Printf("Sebinta (standalone) %s running on port %s", version, cfg.Port)
 	log.Printf("Site password: %s", boolLabel(siteAuthEnabled(cfg)))
 	log.Printf("Logs also written to %s", cfg.LogPath)
 
